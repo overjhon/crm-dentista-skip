@@ -1,31 +1,43 @@
-/* Main App Component - Handles routing (using react-router-dom), query client and other providers - use this file to add all routes */
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import Index from './pages/Index'
-import NotFound from './pages/NotFound'
+import { AppProvider } from '@/stores/useAppStore'
 import Layout from './components/Layout'
-
-// ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
-// AVOID REMOVING ANY CONTEXT PROVIDERS FROM THIS FILE (e.g. TooltipProvider, Toaster, Sonner)
+import Login from './pages/Login'
+import Dashboard from './pages/Index'
+import Pacientes from './pages/Pacientes'
+import Agenda from './pages/Agenda'
+import Financeiro from './pages/Financeiro'
+import Despesas from './pages/Despesas'
+import Relatorios from './pages/Relatorios'
+import Configuracoes from './pages/Configuracoes'
+import NotFound from './pages/NotFound'
 
 const App = () => (
-  <BrowserRouter
-    future={{ v7_startTransition: false, v7_relativeSplatPath: false }}
-  >
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES MUST BE ADDED HERE */}
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </TooltipProvider>
-  </BrowserRouter>
+  <AppProvider>
+    <BrowserRouter
+      future={{ v7_startTransition: false, v7_relativeSplatPath: false }}
+    >
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route element={<Layout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/pacientes" element={<Pacientes />} />
+            <Route path="/agenda" element={<Agenda />} />
+            <Route path="/financeiro" element={<Financeiro />} />
+            <Route path="/despesas" element={<Despesas />} />
+            <Route path="/relatorios" element={<Relatorios />} />
+            <Route path="/configuracoes" element={<Configuracoes />} />
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </TooltipProvider>
+    </BrowserRouter>
+  </AppProvider>
 )
 
 export default App
