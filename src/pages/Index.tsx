@@ -89,7 +89,7 @@ export default function Dashboard() {
       return
     }
 
-    const promise = new Promise(async (resolve, reject) => {
+    const promise = new Promise((resolve, reject) => {
       try {
         // In a real scenario, we would fetch the webhook
         // await fetch(webhookUrl, { method: 'POST', body: JSON.stringify({ patientName, amount }) })
