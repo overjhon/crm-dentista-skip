@@ -33,12 +33,12 @@ export default function Login() {
 
     // Simulate API call
     setTimeout(() => {
-      if (email === 'admin' && password === 'admin') {
+      if (email === 'admin' && password === 'everson123') {
         login(email)
         toast.success('Login realizado com sucesso!')
         navigate('/')
       } else {
-        toast.error('Usuário ou senha inválidos. Tente admin/admin')
+        toast.error('Usuário ou senha inválidos.')
       }
       setIsLoading(false)
     }, 1000)
@@ -46,7 +46,7 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-secondary/30 p-4">
-      <Card className="w-full max-w-md shadow-elevation">
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
             <span className="text-xl font-bold">EM</span>
@@ -74,7 +74,7 @@ export default function Login() {
               <Input
                 id="password"
                 type="password"
-                placeholder="admin"
+                placeholder="******"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
