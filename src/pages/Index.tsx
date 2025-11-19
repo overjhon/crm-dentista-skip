@@ -1,15 +1,7 @@
 import useAppStore from '@/stores/useAppStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import {
-  DollarSign,
-  Users,
-  Calendar,
-  TrendingUp,
-  Clock,
-  MessageCircle,
-  Send,
-} from 'lucide-react'
+import { DollarSign, Users, Calendar, Clock, MessageCircle } from 'lucide-react'
 import {
   ChartContainer,
   ChartTooltip,
@@ -75,7 +67,7 @@ export default function Dashboard() {
           name: curr.patientName,
           amount: 0,
           id: curr.patientId,
-          status: curr.status, // Keep the worst status if mixed? Simplified for now.
+          status: curr.status,
         }
       }
       acc[curr.patientId].amount += curr.amount
@@ -89,19 +81,29 @@ export default function Dashboard() {
 
   const pendingPatientsList = Object.values(patientBalances)
 
-  const handleSendMessage = (patientName: string, amount: number) => {
+  const handleSendMessage = async (patientName: string, amount: number) => {
     const webhookUrl = settings.webhookBilling
 
-    const promise = new Promise((resolve) => {
-      // Simulate network request
-      setTimeout(() => {
-        if (webhookUrl) {
+    if (!webhookUrl) {
+      toast.error('URL do Webhook de cobrança não configurada.')
+      return
+    }
+
+    const promise = new Promise(async (resolve, reject) => {
+      try {
+        // In a real scenario, we would fetch the webhook
+        // await fetch(webhookUrl, { method: 'POST', body: JSON.stringify({ patientName, amount }) })
+
+        // Simulating network request
+        setTimeout(() => {
           console.log(
             `Sending webhook to ${webhookUrl} for ${patientName} - R$ ${amount}`,
           )
-        }
-        resolve(true)
-      }, 1500)
+          resolve(true)
+        }, 1500)
+      } catch (error) {
+        reject(error)
+      }
     })
 
     toast.promise(promise, {
@@ -278,7 +280,9 @@ export default function Dashboard() {
                     <div className="text-right">
                       <p className="font-medium">{appt.time}</p>
                       <p className="text-xs text-muted-foreground">
-                        {format(parseISO(appt.date), 'dd/MM', { locale: ptBR })}
+                        {format(parseISO(appt.date), 'dd/MM/yyyy', {
+                          locale: ptBR,
+                        })}
                       </p>
                     </div>
                   </div>

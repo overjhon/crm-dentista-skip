@@ -96,7 +96,7 @@ export default function Agenda() {
               onSelect={setSelectedDate}
               className="rounded-md border"
               locale={ptBR}
-              // Ensure navigation is enabled for future dates
+              // Ensure navigation is enabled for future dates (e.g. 2025)
               fromDate={new Date(2020, 0, 1)}
               toDate={new Date(2030, 11, 31)}
             />

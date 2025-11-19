@@ -15,7 +15,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
@@ -28,7 +27,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Search, Plus, Edit, Trash2, Eye } from 'lucide-react'
+import { Search, Plus, Edit, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Patient } from '@/types'
 
@@ -222,6 +221,7 @@ export default function Pacientes() {
                   id="cpf"
                   value={formData.cpf || ''}
                   onChange={(e) => {
+                    // Only allow numbers
                     const val = e.target.value.replace(/\D/g, '')
                     setFormData({ ...formData, cpf: val })
                   }}

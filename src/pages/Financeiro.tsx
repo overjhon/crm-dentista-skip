@@ -96,6 +96,7 @@ export default function Financeiro() {
         </Button>
       </div>
 
+      {/* Visual Balance Breakdown */}
       <FinancialBalances />
 
       <div className="flex items-center gap-2">

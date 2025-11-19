@@ -107,7 +107,7 @@ export function FinancialBalances() {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base font-medium">
             <Clock className="h-4 w-4 text-yellow-500" />
-            Saldo Pendente
+            Saldo Pendente para Receber
           </CardTitle>
         </CardHeader>
         <CardContent>{renderList(pending, 'pending')}</CardContent>

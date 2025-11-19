@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState } from 'react'
 import {
   Patient,
   Appointment,
@@ -125,9 +125,9 @@ const MOCK_APPOINTMENTS: Appointment[] = [
     patientName: 'Ana Silva',
     date: '2025-11-18',
     time: '15:00',
-    procedure: 'Retorno',
+    procedure: 'Retorno Anual',
     status: 'Confirmada',
-    notes: 'Agendamento futuro',
+    notes: 'Agendamento futuro para 2025',
   },
 ]
 
