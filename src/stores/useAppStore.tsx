@@ -41,7 +41,7 @@ const MOCK_PATIENTS: Patient[] = [
   {
     id: '1',
     name: 'Ana Silva',
-    cpf: '123.456.789-00',
+    cpf: '12345678900',
     birthDate: '1990-05-15',
     phone: '(11) 99999-1111',
     email: 'ana@example.com',
@@ -53,7 +53,7 @@ const MOCK_PATIENTS: Patient[] = [
   {
     id: '2',
     name: 'Bruno Souza',
-    cpf: '234.567.890-11',
+    cpf: '23456789011',
     birthDate: '1985-08-20',
     phone: '(11) 98888-2222',
     email: 'bruno@example.com',
@@ -65,7 +65,7 @@ const MOCK_PATIENTS: Patient[] = [
   {
     id: '3',
     name: 'Carla Dias',
-    cpf: '345.678.901-22',
+    cpf: '34567890122',
     birthDate: '1995-12-01',
     phone: '(11) 97777-3333',
     email: 'carla@example.com',
@@ -73,6 +73,18 @@ const MOCK_PATIENTS: Patient[] = [
     status: 'Aguardando Pagamento',
     notes: 'Tratamento de canal',
     createdAt: '2023-03-20',
+  },
+  {
+    id: '4',
+    name: 'Daniel Oliveira',
+    cpf: '45678901233',
+    birthDate: '1988-03-10',
+    phone: '(11) 96666-4444',
+    email: 'daniel@example.com',
+    address: 'Rua D, 101',
+    status: 'Aguardando Pagamento',
+    notes: '',
+    createdAt: '2023-04-05',
   },
 ]
 
@@ -107,6 +119,16 @@ const MOCK_APPOINTMENTS: Appointment[] = [
     status: 'Realizada',
     notes: 'Paciente sentiu dor leve',
   },
+  {
+    id: '4',
+    patientId: '1',
+    patientName: 'Ana Silva',
+    date: '2025-11-18',
+    time: '15:00',
+    procedure: 'Retorno',
+    status: 'Confirmada',
+    notes: 'Agendamento futuro',
+  },
 ]
 
 const MOCK_PAYMENTS: Payment[] = [
@@ -131,6 +153,17 @@ const MOCK_PAYMENTS: Payment[] = [
     status: 'Pendente',
     method: 'Cartão',
     notes: 'Parcelado em 2x',
+  },
+  {
+    id: '3',
+    patientId: '4',
+    patientName: 'Daniel Oliveira',
+    procedure: 'Implante',
+    amount: 1500,
+    date: format(subDays(new Date(), 10), 'yyyy-MM-dd'),
+    status: 'Atrasado',
+    method: 'Boleto',
+    notes: 'Vencido há 5 dias',
   },
 ]
 

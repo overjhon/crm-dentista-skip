@@ -56,9 +56,33 @@ export default function Pacientes() {
     setIsModalOpen(true)
   }
 
+  const cleanCPF = (value: string) => value.replace(/\D/g, '')
+
   const handleSave = () => {
-    if (!formData.name || !formData.cpf) {
-      toast.error('Nome e CPF são obrigatórios')
+    if (!formData.name) {
+      toast.error('Nome é obrigatório')
+      return
+    }
+
+    if (!formData.cpf) {
+      toast.error('CPF é obrigatório')
+      return
+    }
+
+    const cleanedCPF = cleanCPF(formData.cpf)
+
+    if (cleanedCPF.length === 0) {
+      toast.error('CPF inválido')
+      return
+    }
+
+    // Check for duplicate CPF
+    const duplicate = patients.find(
+      (p) => cleanCPF(p.cpf) === cleanedCPF && p.id !== editingPatient?.id,
+    )
+
+    if (duplicate) {
+      toast.error('Este CPF já está cadastrado para outro paciente.')
       return
     }
 
@@ -193,13 +217,16 @@ export default function Pacientes() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cpf">CPF</Label>
+                <Label htmlFor="cpf">CPF (Apenas números)</Label>
                 <Input
                   id="cpf"
                   value={formData.cpf || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, cpf: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '')
+                    setFormData({ ...formData, cpf: val })
+                  }}
+                  placeholder="00000000000"
+                  maxLength={11}
                 />
               </div>
             </div>

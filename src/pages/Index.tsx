@@ -1,12 +1,14 @@
 import useAppStore from '@/stores/useAppStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import {
   DollarSign,
   Users,
   Calendar,
-  Receipt,
   TrendingUp,
   Clock,
+  MessageCircle,
+  Send,
 } from 'lucide-react'
 import {
   ChartContainer,
@@ -26,9 +28,10 @@ import {
 } from 'recharts'
 import { format, isSameMonth, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { toast } from 'sonner'
 
 export default function Dashboard() {
-  const { payments, patients, appointments, expenses } = useAppStore()
+  const { payments, patients, appointments, settings } = useAppStore()
 
   const currentMonth = new Date()
 
@@ -41,10 +44,6 @@ export default function Dashboard() {
 
   const pendingAmount = payments
     .filter((p) => p.status === 'Pendente' || p.status === 'Atrasado')
-    .reduce((acc, curr) => acc + curr.amount, 0)
-
-  const totalRevenue = payments
-    .filter((p) => p.status === 'Pago')
     .reduce((acc, curr) => acc + curr.amount, 0)
 
   const activePatients = patients.filter(
@@ -64,6 +63,54 @@ export default function Dashboard() {
     .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
     .slice(0, 3)
 
+  // Pending Balances Logic
+  const pendingPayments = payments.filter(
+    (p) => p.status === 'Pendente' || p.status === 'Atrasado',
+  )
+
+  const patientBalances = pendingPayments.reduce(
+    (acc, curr) => {
+      if (!acc[curr.patientId]) {
+        acc[curr.patientId] = {
+          name: curr.patientName,
+          amount: 0,
+          id: curr.patientId,
+          status: curr.status, // Keep the worst status if mixed? Simplified for now.
+        }
+      }
+      acc[curr.patientId].amount += curr.amount
+      return acc
+    },
+    {} as Record<
+      string,
+      { name: string; amount: number; id: string; status: string }
+    >,
+  )
+
+  const pendingPatientsList = Object.values(patientBalances)
+
+  const handleSendMessage = (patientName: string, amount: number) => {
+    const webhookUrl = settings.webhookBilling
+
+    const promise = new Promise((resolve) => {
+      // Simulate network request
+      setTimeout(() => {
+        if (webhookUrl) {
+          console.log(
+            `Sending webhook to ${webhookUrl} for ${patientName} - R$ ${amount}`,
+          )
+        }
+        resolve(true)
+      }, 1500)
+    })
+
+    toast.promise(promise, {
+      loading: 'Enviando mensagem...',
+      success: `Mensagem enviada para ${patientName}!`,
+      error: 'Erro ao enviar mensagem',
+    })
+  }
+
   // Chart Data
   const revenueData = [
     { month: 'Jan', revenue: 12000 },
@@ -71,7 +118,7 @@ export default function Dashboard() {
     { month: 'Mar', revenue: 18000 },
     { month: 'Abr', revenue: 14000 },
     { month: 'Mai', revenue: 20000 },
-    { month: 'Jun', revenue: monthlyRevenue || 22000 }, // Mocking history + current
+    { month: 'Jun', revenue: monthlyRevenue || 22000 },
   ]
 
   const procedureData = [
@@ -240,33 +287,49 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Patients with Pending Balance */}
         <Card>
           <CardHeader>
-            <CardTitle>Despesas Recentes</CardTitle>
+            <CardTitle>Pacientes com Saldo Pendente</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {expenses.slice(0, 3).map((expense) => (
-                <div
-                  key={expense.id}
-                  className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary">
-                      <Receipt className="h-4 w-4 text-muted-foreground" />
+              {pendingPatientsList.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhum paciente com pendências.
+                </p>
+              ) : (
+                pendingPatientsList.map((patient) => (
+                  <div
+                    key={patient.id}
+                    className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-destructive/10">
+                        <DollarSign className="h-4 w-4 text-destructive" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{patient.name}</p>
+                        <p className="text-xs text-destructive font-semibold">
+                          R$ {patient.amount.toFixed(2)}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{expense.description}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(parseISO(expense.date), 'dd/MM/yyyy')}
-                      </p>
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-2"
+                      onClick={() =>
+                        handleSendMessage(patient.name, patient.amount)
+                      }
+                    >
+                      <MessageCircle className="h-3 w-3" />
+                      <span className="hidden sm:inline">Mandar Mensagem</span>
+                    </Button>
                   </div>
-                  <div className="font-medium text-destructive">
-                    - R$ {expense.amount.toFixed(2)}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

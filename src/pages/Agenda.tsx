@@ -2,7 +2,7 @@ import { useState } from 'react'
 import useAppStore from '@/stores/useAppStore'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -24,7 +24,7 @@ import { format, parseISO, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Appointment } from '@/types'
 import { toast } from 'sonner'
-import { Plus, Clock } from 'lucide-react'
+import { Plus, Clock, Calendar as CalendarIcon } from 'lucide-react'
 
 export default function Agenda() {
   const {
@@ -96,16 +96,32 @@ export default function Agenda() {
               onSelect={setSelectedDate}
               className="rounded-md border"
               locale={ptBR}
+              // Ensure navigation is enabled for future dates
+              fromDate={new Date(2020, 0, 1)}
+              toDate={new Date(2030, 11, 31)}
             />
+            <div className="mt-4 flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedDate(new Date())}
+                className="w-full"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                Hoje
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <div className="flex-1 flex flex-col gap-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">
+          <h2 className="text-2xl font-bold capitalize">
             {selectedDate
-              ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR })
+              ? format(selectedDate, "EEEE, dd 'de' MMMM 'de' yyyy", {
+                  locale: ptBR,
+                })
               : 'Selecione uma data'}
           </h2>
           <Button onClick={() => handleOpenModal()}>
@@ -113,9 +129,9 @@ export default function Agenda() {
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-4">
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
           {dailyAppointments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground border rounded-lg bg-card">
+            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground border rounded-lg bg-card border-dashed">
               <Clock className="h-12 w-12 mb-2 opacity-20" />
               <p>Nenhum agendamento para este dia.</p>
             </div>
@@ -123,12 +139,12 @@ export default function Agenda() {
             dailyAppointments.map((appt) => (
               <Card
                 key={appt.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
+                className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-primary"
                 onClick={() => handleOpenModal(appt)}
               >
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="bg-primary/10 text-primary font-bold px-3 py-2 rounded text-lg">
+                    <div className="bg-primary/10 text-primary font-bold px-3 py-2 rounded text-lg min-w-[80px] text-center">
                       {appt.time}
                     </div>
                     <div>
