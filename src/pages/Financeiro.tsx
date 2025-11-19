@@ -30,6 +30,7 @@ import { Plus, Edit, Trash2, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { Payment } from '@/types'
 import { format, parseISO } from 'date-fns'
+import { FinancialBalances } from '@/components/FinancialBalances'
 
 export default function Financeiro() {
   const { payments, patients, addPayment, updatePayment, deletePayment } =
@@ -94,6 +95,8 @@ export default function Financeiro() {
           <Plus className="mr-2 h-4 w-4" /> Registrar Pagamento
         </Button>
       </div>
+
+      <FinancialBalances />
 
       <div className="flex items-center gap-2">
         <div className="relative flex-1 max-w-sm">
