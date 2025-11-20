@@ -12,8 +12,8 @@ export const getExpenses = async (): Promise<Expense[]> => {
   return data.map((e: any) => ({
     id: e.id,
     description: e.descricao,
-    amount: e.valor,
-    type: e.tipo_despesa as any,
+    amount: Number(e.valor),
+    type: e.tipo_despesa || undefined,
     date: e.data_despesa,
     notes: '',
   }))
@@ -26,7 +26,7 @@ export const createExpense = async (expense: Omit<Expense, 'id'>) => {
       descricao: expense.description,
       valor: expense.amount,
       data_despesa: expense.date,
-      tipo_despesa: expense.type,
+      tipo_despesa: expense.type || null,
     })
     .select()
     .single()
@@ -40,7 +40,7 @@ export const updateExpense = async (id: string, expense: Partial<Expense>) => {
   if (expense.description) updates.descricao = expense.description
   if (expense.amount) updates.valor = expense.amount
   if (expense.date) updates.data_despesa = expense.date
-  if (expense.type) updates.tipo_despesa = expense.type
+  if (expense.type !== undefined) updates.tipo_despesa = expense.type || null
 
   const { error } = await supabase.from('despesas').update(updates).eq('id', id)
 

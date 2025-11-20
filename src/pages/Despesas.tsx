@@ -45,9 +45,7 @@ const expenseSchema = z.object({
   description: z.string().min(1, 'Descrição é obrigatória'),
   amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
   date: z.string().min(1, 'Data é obrigatória'),
-  type: z.enum(['Fixa', 'Variável'], {
-    required_error: 'Tipo é obrigatório',
-  }),
+  type: z.enum(['Fixa', 'Variável']).optional(),
 })
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>
@@ -64,7 +62,7 @@ export default function Despesas() {
       description: '',
       amount: 0,
       date: format(new Date(), 'yyyy-MM-dd'),
-      type: 'Variável',
+      type: undefined,
     },
   })
 
@@ -82,7 +80,7 @@ export default function Despesas() {
           description: '',
           amount: 0,
           date: format(new Date(), 'yyyy-MM-dd'),
-          type: 'Variável',
+          type: undefined,
         })
       }
     }
@@ -108,6 +106,7 @@ export default function Despesas() {
       }
       setIsModalOpen(false)
     } catch (error) {
+      console.error(error)
       toast.error('Erro ao salvar despesa')
     }
   }
@@ -156,39 +155,54 @@ export default function Despesas() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredExpenses.map((expense) => (
-              <TableRow key={expense.id}>
-                <TableCell className="font-medium">
-                  {expense.description}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{expense.type}</Badge>
-                </TableCell>
-                <TableCell>
-                  {format(parseISO(expense.date), 'dd/MM/yyyy')}
-                </TableCell>
-                <TableCell>R$ {expense.amount.toFixed(2)}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleOpenModal(expense)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(expense.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+            {filteredExpenses.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={5}
+                  className="text-center py-8 text-muted-foreground"
+                >
+                  Nenhuma despesa encontrada.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredExpenses.map((expense) => (
+                <TableRow key={expense.id}>
+                  <TableCell className="font-medium">
+                    {expense.description}
+                  </TableCell>
+                  <TableCell>
+                    {expense.type ? (
+                      <Badge variant="outline">{expense.type}</Badge>
+                    ) : (
+                      '-'
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {format(parseISO(expense.date), 'dd/MM/yyyy')}
+                  </TableCell>
+                  <TableCell>R$ {expense.amount.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpenModal(expense)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(expense.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
@@ -251,18 +265,21 @@ export default function Despesas() {
                 name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tipo</FormLabel>
+                    <FormLabel>Tipo (Opcional)</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
+                      onValueChange={(val) =>
+                        field.onChange(val === 'none' ? undefined : val)
+                      }
                       defaultValue={field.value}
-                      value={field.value}
+                      value={field.value || ''}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
+                          <SelectValue placeholder="Selecione (Opcional)" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="none">Não informado</SelectItem>
                         <SelectItem value="Fixa">Fixa</SelectItem>
                         <SelectItem value="Variável">Variável</SelectItem>
                       </SelectContent>

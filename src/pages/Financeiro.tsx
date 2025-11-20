@@ -47,9 +47,7 @@ const paymentSchema = z.object({
   procedureId: z.string().optional(),
   amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
   date: z.string().min(1, 'Data é obrigatória'),
-  method: z.enum(['Dinheiro', 'Cartão', 'PIX', 'Link'], {
-    required_error: 'Forma de pagamento é obrigatória',
-  }),
+  method: z.enum(['Dinheiro', 'Cartão', 'PIX', 'Link']).optional(),
   status: z.enum(['Pago', 'Pendente', 'Atrasado'], {
     required_error: 'Status é obrigatório',
   }),
@@ -77,7 +75,7 @@ export default function Financeiro() {
       procedureId: '',
       amount: 0,
       date: format(new Date(), 'yyyy-MM-dd'),
-      method: 'PIX',
+      method: undefined,
       status: 'Pago',
     },
   })
@@ -99,7 +97,7 @@ export default function Financeiro() {
           procedureId: '',
           amount: 0,
           date: format(new Date(), 'yyyy-MM-dd'),
-          method: 'PIX',
+          method: undefined,
           status: 'Pago',
         })
       }
@@ -131,6 +129,7 @@ export default function Financeiro() {
       }
       setIsModalOpen(false)
     } catch (error) {
+      console.error(error)
       toast.error('Erro ao salvar pagamento')
     }
   }
@@ -184,51 +183,62 @@ export default function Financeiro() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredPayments.map((payment) => (
-              <TableRow key={payment.id}>
-                <TableCell className="font-medium">
-                  {payment.patientName}
-                </TableCell>
-                <TableCell>{payment.procedure}</TableCell>
-                <TableCell>
-                  {format(parseISO(payment.date), 'dd/MM/yyyy')}
-                </TableCell>
-                <TableCell>R$ {payment.amount.toFixed(2)}</TableCell>
-                <TableCell>{payment.method}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      payment.status === 'Pago'
-                        ? 'default'
-                        : payment.status === 'Pendente'
-                          ? 'secondary'
-                          : 'destructive'
-                    }
-                  >
-                    {payment.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleOpenModal(payment)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(payment.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+            {filteredPayments.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={7}
+                  className="text-center py-8 text-muted-foreground"
+                >
+                  Nenhum pagamento encontrado.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredPayments.map((payment) => (
+                <TableRow key={payment.id}>
+                  <TableCell className="font-medium">
+                    {payment.patientName}
+                  </TableCell>
+                  <TableCell>{payment.procedure}</TableCell>
+                  <TableCell>
+                    {format(parseISO(payment.date), 'dd/MM/yyyy')}
+                  </TableCell>
+                  <TableCell>R$ {payment.amount.toFixed(2)}</TableCell>
+                  <TableCell>{payment.method || '-'}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        payment.status === 'Pago'
+                          ? 'default'
+                          : payment.status === 'Pendente'
+                            ? 'secondary'
+                            : 'destructive'
+                      }
+                    >
+                      {payment.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpenModal(payment)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(payment.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
@@ -276,24 +286,27 @@ export default function Financeiro() {
                 name="procedureId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Procedimento</FormLabel>
+                    <FormLabel>Procedimento (Opcional)</FormLabel>
                     <Select
                       onValueChange={(val) => {
-                        field.onChange(val)
-                        const proc = procedures.find((p) => p.id === val)
-                        if (proc) {
-                          form.setValue('amount', proc.standardValue)
+                        field.onChange(val === 'none' ? '' : val)
+                        if (val !== 'none') {
+                          const proc = procedures.find((p) => p.id === val)
+                          if (proc) {
+                            form.setValue('amount', proc.standardValue)
+                          }
                         }
                       }}
                       defaultValue={field.value}
-                      value={field.value}
+                      value={field.value || ''}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione o procedimento" />
+                          <SelectValue placeholder="Selecione (Opcional)" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="none">Nenhum</SelectItem>
                         {procedures.map((p) => (
                           <SelectItem key={p.id} value={p.id}>
                             {p.name}
@@ -342,18 +355,21 @@ export default function Financeiro() {
                   name="method"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Forma de Pagamento</FormLabel>
+                      <FormLabel>Forma de Pagamento (Opcional)</FormLabel>
                       <Select
-                        onValueChange={field.onChange}
+                        onValueChange={(val) =>
+                          field.onChange(val === 'none' ? undefined : val)
+                        }
                         defaultValue={field.value}
-                        value={field.value}
+                        value={field.value || ''}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecione" />
+                            <SelectValue placeholder="Selecione (Opcional)" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="none">Não informado</SelectItem>
                           <SelectItem value="Dinheiro">Dinheiro</SelectItem>
                           <SelectItem value="Cartão">Cartão</SelectItem>
                           <SelectItem value="PIX">PIX</SelectItem>

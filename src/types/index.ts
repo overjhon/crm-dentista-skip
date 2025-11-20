@@ -9,7 +9,7 @@ export interface Patient {
   id: string
   name: string
   cpf: string
-  birthDate?: string // Not in DB schema provided in user story, keeping optional or mapping from other field if needed. User story didn't ask for birthDate in DB.
+  birthDate?: string
   phone: string
   email: string
   address: string
@@ -35,9 +35,9 @@ export interface Appointment {
   patientId: string
   patientName: string
   procedureId: string
-  procedure: string // Name of procedure
-  date: string // ISO string (YYYY-MM-DD)
-  time: string // HH:mm
+  procedure: string
+  date: string
+  time: string
   status: 'Confirmada' | 'Realizada' | 'Reagendada' | 'Cancelada'
   notes: string
 }
@@ -51,7 +51,7 @@ export interface Payment {
   amount: number
   date: string
   status: 'Pago' | 'Pendente' | 'Atrasado'
-  method: 'Dinheiro' | 'Cartão' | 'PIX' | 'Link'
+  method?: 'Dinheiro' | 'Cartão' | 'PIX' | 'Link'
   notes?: string
 }
 
@@ -59,7 +59,7 @@ export interface Expense {
   id: string
   description: string
   amount: number
-  type: 'Fixa' | 'Variável'
+  type?: 'Fixa' | 'Variável'
   date: string
   notes?: string
 }
