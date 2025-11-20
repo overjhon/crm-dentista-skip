@@ -17,13 +17,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Edit, Trash2, Search } from 'lucide-react'
 import { toast } from 'sonner'
@@ -39,13 +32,26 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form'
 
 const expenseSchema = z.object({
   description: z.string().min(1, 'Descrição é obrigatória'),
   amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
   date: z.string().min(1, 'Data é obrigatória'),
-  type: z.enum(['Fixa', 'Variável']).optional(),
+  type: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined
+      const lower = val.trim().toLowerCase()
+      if (['fixa', 'fixo'].includes(lower)) return 'Fixa'
+      if (['variável', 'variavel', 'var'].includes(lower)) return 'Variável'
+      return val
+    })
+    .refine((val) => !val || ['Fixa', 'Variável'].includes(val), {
+      message: "Tipo inválido. Use 'Fixa' ou 'Variável'.",
+    }),
 })
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>
@@ -266,24 +272,16 @@ export default function Despesas() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tipo (Opcional)</FormLabel>
-                    <Select
-                      onValueChange={(val) =>
-                        field.onChange(val === 'none' ? undefined : val)
-                      }
-                      defaultValue={field.value}
-                      value={field.value || ''}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione (Opcional)" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">Não informado</SelectItem>
-                        <SelectItem value="Fixa">Fixa</SelectItem>
-                        <SelectItem value="Variável">Variável</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={field.value || ''}
+                        placeholder="Ex: Fixa, Variável"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Aceita: Fixa, Variável (Maiúsculas/Minúsculas)
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

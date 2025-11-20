@@ -40,6 +40,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form'
 
 const paymentSchema = z.object({
@@ -48,9 +49,19 @@ const paymentSchema = z.object({
   amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
   date: z.string().min(1, 'Data é obrigatória'),
   method: z.enum(['Dinheiro', 'Cartão', 'PIX', 'Link']).optional(),
-  status: z.enum(['Pago', 'Pendente', 'Atrasado'], {
-    required_error: 'Status é obrigatório',
-  }),
+  status: z
+    .string()
+    .min(1, 'Status é obrigatório')
+    .transform((val) => {
+      const lower = val.trim().toLowerCase()
+      if (['pago', 'pagou'].includes(lower)) return 'Pago'
+      if (['pendente', 'aberto', 'a receber'].includes(lower)) return 'Pendente'
+      if (['atrasado', 'vencido'].includes(lower)) return 'Atrasado'
+      return val
+    })
+    .refine((val) => ['Pago', 'Pendente', 'Atrasado'].includes(val), {
+      message: 'Status inválido. Use: Pago, Pendente ou Atrasado.',
+    }),
 })
 
 type PaymentFormValues = z.infer<typeof paymentSchema>
@@ -387,22 +398,16 @@ export default function Financeiro() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Status</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Pago">Pago</SelectItem>
-                          <SelectItem value="Pendente">Pendente</SelectItem>
-                          <SelectItem value="Atrasado">Atrasado</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={field.value || ''}
+                          placeholder="Ex: Pago, Pendente"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Aceita: Pago, Pendente, Atrasado (Maiúsculas/Minúsculas)
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
