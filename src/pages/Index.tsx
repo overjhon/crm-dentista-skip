@@ -40,7 +40,6 @@ export default function Dashboard() {
   const currentMonth = new Date()
 
   // 1. Faturamento Mensal
-  // Sum of 'Pago' transactions in the current month
   const monthlyRevenue = payments
     .filter(
       (p) =>
@@ -51,23 +50,14 @@ export default function Dashboard() {
     .reduce((acc, curr) => acc + curr.amount, 0)
 
   // 2. Pendências Financeiras
-  // Sum of 'Pendente' or 'Atrasado' transactions
   const pendingAmount = payments
     .filter((p) => p.status === 'Pendente' || p.status === 'Atrasado')
     .reduce((acc, curr) => acc + curr.amount, 0)
 
   // 3. Pacientes Ativos
-  // Total count of records in patients table
   const activePatients = patients.length
 
-  // New leads for context (optional, keeping existing logic for sub-text)
-  const newLeads = patients.filter(
-    (p) =>
-      p.status === 'Novo' && isSameMonth(parseISO(p.createdAt), currentMonth),
-  ).length
-
   // 4. Consultas Realizadas no Mês
-  // Count of 'Realizada' appointments in the current month
   const monthlyAppointments = appointments.filter(
     (a) =>
       a.status === 'Realizada' &&
@@ -76,7 +66,6 @@ export default function Dashboard() {
   ).length
 
   // 5. Evolução do Faturamento Semestral Graph
-  // Last 6 months revenue
   const last6Months = Array.from({ length: 6 }, (_, i) => {
     const d = subMonths(new Date(), 5 - i)
     return d
@@ -100,7 +89,6 @@ export default function Dashboard() {
   })
 
   // 6. Distribuição de Procedimentos Populares Graph
-  // Count of appointments grouped by procedure name
   const procedureCounts = appointments.reduce(
     (acc, curr) => {
       const name = curr.procedure || 'Outros'
@@ -113,7 +101,7 @@ export default function Dashboard() {
   const procedureData = Object.entries(procedureCounts)
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value)
-    .slice(0, 5) // Top 5 procedures
+    .slice(0, 5)
 
   const COLORS = [
     'hsl(var(--chart-1))',
@@ -123,12 +111,11 @@ export default function Dashboard() {
     'hsl(var(--chart-5))',
   ]
 
-  // 7. Próximas Consultas List
-  // Appointments today or in the future
+  // 7. Próximas Consultas List (Confirmed Appointments)
+  // Filters for 'Confirmada' status and future/today dates
   const nextAppointments = appointments
     .filter((a) => {
       const apptDate = parseISO(a.date)
-      // Filter for confirmed appointments today or in the future
       return (
         a.status === 'Confirmada' &&
         (isAfter(apptDate, today) || isEqual(apptDate, today))
@@ -142,10 +129,9 @@ export default function Dashboard() {
       }
       return dateA - dateB
     })
-    .slice(0, 5) // Show top 5
+    .slice(0, 5)
 
   // 8. Pacientes com Saldo Pendente List
-  // Group pending payments by patient
   const pendingPayments = payments.filter(
     (p) => p.status === 'Pendente' || p.status === 'Atrasado',
   )
@@ -181,7 +167,6 @@ export default function Dashboard() {
 
     const promise = new Promise((resolve, reject) => {
       try {
-        // Simulating network request
         setTimeout(() => {
           console.log(
             `Sending webhook to ${webhookUrl} for ${patientName} - ${formatCurrency(amount)}`,
@@ -339,13 +324,13 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Próximas Consultas</CardTitle>
+            <CardTitle>Próximas Consultas Confirmadas</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {nextAppointments.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Nenhuma consulta agendada.
+                  Nenhuma consulta confirmada agendada.
                 </p>
               ) : (
                 nextAppointments.map((appt) => (
@@ -360,7 +345,7 @@ export default function Dashboard() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">{appt.time}</p>
+                      <p className="font-medium text-primary">{appt.time}</p>
                       <p className="text-xs text-muted-foreground">
                         {format(parseISO(appt.date), 'dd/MM/yyyy', {
                           locale: ptBR,

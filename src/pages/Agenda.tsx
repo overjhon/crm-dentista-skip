@@ -25,6 +25,7 @@ import { ptBR } from 'date-fns/locale'
 import { Appointment } from '@/types'
 import { toast } from 'sonner'
 import { Plus, Clock, Calendar as CalendarIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export default function Agenda() {
   const {
@@ -149,7 +150,12 @@ export default function Agenda() {
             dailyAppointments.map((appt) => (
               <Card
                 key={appt.id}
-                className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-primary"
+                className={cn(
+                  'cursor-pointer hover:shadow-md transition-shadow border-l-4',
+                  appt.status === 'Confirmada'
+                    ? 'border-l-green-500'
+                    : 'border-l-primary',
+                )}
                 onClick={() => handleOpenModal(appt)}
               >
                 <CardContent className="p-4 flex items-center justify-between">

@@ -33,7 +33,9 @@ export type Database = {
           numero: number | null
           observacoes_cliente: string | null
           paciente_id: string
+          pacientes: string | null
           procedimento_id: string
+          procedimentos_: string | null
           Status: string | null
         }
         Insert: {
@@ -53,7 +55,9 @@ export type Database = {
           numero?: number | null
           observacoes_cliente?: string | null
           paciente_id: string
+          pacientes?: string | null
           procedimento_id: string
+          procedimentos_?: string | null
           Status?: string | null
         }
         Update: {
@@ -73,7 +77,9 @@ export type Database = {
           numero?: number | null
           observacoes_cliente?: string | null
           paciente_id?: string
+          pacientes?: string | null
           procedimento_id?: string
+          procedimentos_?: string | null
           Status?: string | null
         }
         Relationships: [
@@ -169,7 +175,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           nome_procedimento: string
-          valor_padrao: number
+          valor_padrao?: number
         }
         Update: {
           criado_em?: string | null
