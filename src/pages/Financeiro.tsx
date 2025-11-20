@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import useAppStore from '@/stores/useAppStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,7 +17,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -31,6 +30,32 @@ import { toast } from 'sonner'
 import { Payment } from '@/types'
 import { format, parseISO } from 'date-fns'
 import { FinancialBalances } from '@/components/FinancialBalances'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+
+const paymentSchema = z.object({
+  patientId: z.string().min(1, 'Paciente é obrigatório'),
+  procedureId: z.string().optional(),
+  amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
+  date: z.string().min(1, 'Data é obrigatória'),
+  method: z.enum(['Dinheiro', 'Cartão', 'PIX', 'Link'], {
+    required_error: 'Forma de pagamento é obrigatória',
+  }),
+  status: z.enum(['Pago', 'Pendente', 'Atrasado'], {
+    required_error: 'Status é obrigatório',
+  }),
+})
+
+type PaymentFormValues = z.infer<typeof paymentSchema>
 
 export default function Financeiro() {
   const {
@@ -44,7 +69,42 @@ export default function Financeiro() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null)
-  const [formData, setFormData] = useState<Partial<Payment>>({})
+
+  const form = useForm<PaymentFormValues>({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: {
+      patientId: '',
+      procedureId: '',
+      amount: 0,
+      date: format(new Date(), 'yyyy-MM-dd'),
+      method: 'PIX',
+      status: 'Pago',
+    },
+  })
+
+  useEffect(() => {
+    if (isModalOpen) {
+      if (editingPayment) {
+        form.reset({
+          patientId: editingPayment.patientId,
+          procedureId: editingPayment.procedureId || '',
+          amount: editingPayment.amount,
+          date: editingPayment.date,
+          method: editingPayment.method,
+          status: editingPayment.status,
+        })
+      } else {
+        form.reset({
+          patientId: '',
+          procedureId: '',
+          amount: 0,
+          date: format(new Date(), 'yyyy-MM-dd'),
+          method: 'PIX',
+          status: 'Pago',
+        })
+      }
+    }
+  }, [isModalOpen, editingPayment, form])
 
   const filteredPayments = payments.filter(
     (p) =>
@@ -53,32 +113,20 @@ export default function Financeiro() {
   )
 
   const handleOpenModal = (payment?: Payment) => {
-    if (payment) {
-      setEditingPayment(payment)
-      setFormData(payment)
-    } else {
-      setEditingPayment(null)
-      setFormData({
-        date: format(new Date(), 'yyyy-MM-dd'),
-        status: 'Pago',
-        method: 'PIX',
-      })
-    }
+    setEditingPayment(payment || null)
     setIsModalOpen(true)
   }
 
-  const handleSave = async () => {
-    if (!formData.patientId || !formData.amount) {
-      toast.error('Paciente e Valor são obrigatórios')
-      return
-    }
-
+  const onSubmit = async (data: PaymentFormValues) => {
     try {
       if (editingPayment) {
-        await updatePayment(editingPayment.id, formData)
+        await updatePayment(editingPayment.id, data)
         toast.success('Pagamento atualizado')
       } else {
-        await addPayment(formData as any)
+        await addPayment({
+          ...data,
+          procedureId: data.procedureId || undefined,
+        })
         toast.success('Pagamento registrado')
       }
       setIsModalOpen(false)
@@ -192,125 +240,171 @@ export default function Financeiro() {
               {editingPayment ? 'Editar Pagamento' : 'Novo Pagamento'}
             </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="patient">Paciente</Label>
-              <Select
-                value={formData.patientId}
-                onValueChange={(val) =>
-                  setFormData({ ...formData, patientId: val })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o paciente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {patients.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="procedure">Procedimento</Label>
-              <Select
-                value={formData.procedureId}
-                onValueChange={(val) => {
-                  const proc = procedures.find((p) => p.id === val)
-                  setFormData({
-                    ...formData,
-                    procedureId: val,
-                    amount: proc ? proc.standardValue : formData.amount,
-                  })
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o procedimento" />
-                </SelectTrigger>
-                <SelectContent>
-                  {procedures.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="amount">Valor (R$)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  value={formData.amount || ''}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      amount: parseFloat(e.target.value),
-                    })
-                  }
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="patientId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Paciente</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o paciente" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {patients.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="procedureId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Procedimento</FormLabel>
+                    <Select
+                      onValueChange={(val) => {
+                        field.onChange(val)
+                        const proc = procedures.find((p) => p.id === val)
+                        if (proc) {
+                          form.setValue('amount', proc.standardValue)
+                        }
+                      }}
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o procedimento" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {procedures.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor (R$)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="date">Data</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, date: e.target.value })
-                  }
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="method"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Forma de Pagamento</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                          <SelectItem value="Cartão">Cartão</SelectItem>
+                          <SelectItem value="PIX">PIX</SelectItem>
+                          <SelectItem value="Link">Link</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Pago">Pago</SelectItem>
+                          <SelectItem value="Pendente">Pendente</SelectItem>
+                          <SelectItem value="Atrasado">Atrasado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="method">Forma de Pagamento</Label>
-                <Select
-                  value={formData.method}
-                  onValueChange={(val: any) =>
-                    setFormData({ ...formData, method: val })
-                  }
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsModalOpen(false)}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Dinheiro">Dinheiro</SelectItem>
-                    <SelectItem value="Cartão">Cartão</SelectItem>
-                    <SelectItem value="PIX">PIX</SelectItem>
-                    <SelectItem value="Link">Link</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(val: any) =>
-                    setFormData({ ...formData, status: val })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Pago">Pago</SelectItem>
-                    <SelectItem value="Pendente">Pendente</SelectItem>
-                    <SelectItem value="Atrasado">Atrasado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave}>Salvar</Button>
-          </DialogFooter>
+                  Cancelar
+                </Button>
+                <Button type="submit">Salvar</Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

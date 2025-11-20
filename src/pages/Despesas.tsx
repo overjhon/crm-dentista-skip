@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import useAppStore from '@/stores/useAppStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,7 +17,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -30,44 +29,81 @@ import { Plus, Edit, Trash2, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { Expense } from '@/types'
 import { format, parseISO } from 'date-fns'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+
+const expenseSchema = z.object({
+  description: z.string().min(1, 'Descrição é obrigatória'),
+  amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
+  date: z.string().min(1, 'Data é obrigatória'),
+  type: z.enum(['Fixa', 'Variável'], {
+    required_error: 'Tipo é obrigatório',
+  }),
+})
+
+type ExpenseFormValues = z.infer<typeof expenseSchema>
 
 export default function Despesas() {
   const { expenses, addExpense, updateExpense, deleteExpense } = useAppStore()
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
-  const [formData, setFormData] = useState<Partial<Expense>>({})
+
+  const form = useForm<ExpenseFormValues>({
+    resolver: zodResolver(expenseSchema),
+    defaultValues: {
+      description: '',
+      amount: 0,
+      date: format(new Date(), 'yyyy-MM-dd'),
+      type: 'Variável',
+    },
+  })
+
+  useEffect(() => {
+    if (isModalOpen) {
+      if (editingExpense) {
+        form.reset({
+          description: editingExpense.description,
+          amount: editingExpense.amount,
+          date: editingExpense.date,
+          type: editingExpense.type,
+        })
+      } else {
+        form.reset({
+          description: '',
+          amount: 0,
+          date: format(new Date(), 'yyyy-MM-dd'),
+          type: 'Variável',
+        })
+      }
+    }
+  }, [isModalOpen, editingExpense, form])
 
   const filteredExpenses = expenses.filter((e) =>
     e.description.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const handleOpenModal = (expense?: Expense) => {
-    if (expense) {
-      setEditingExpense(expense)
-      setFormData(expense)
-    } else {
-      setEditingExpense(null)
-      setFormData({
-        date: format(new Date(), 'yyyy-MM-dd'),
-        type: 'Variável',
-      })
-    }
+    setEditingExpense(expense || null)
     setIsModalOpen(true)
   }
 
-  const handleSave = async () => {
-    if (!formData.description || !formData.amount) {
-      toast.error('Descrição e Valor são obrigatórios')
-      return
-    }
-
+  const onSubmit = async (data: ExpenseFormValues) => {
     try {
       if (editingExpense) {
-        await updateExpense(editingExpense.id, formData)
+        await updateExpense(editingExpense.id, data)
         toast.success('Despesa atualizada')
       } else {
-        await addExpense(formData as any)
+        await addExpense(data)
         toast.success('Despesa registrada')
       }
       setIsModalOpen(false)
@@ -164,68 +200,90 @@ export default function Despesas() {
               {editingExpense ? 'Editar Despesa' : 'Nova Despesa'}
             </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="description">Descrição</Label>
-              <Input
-                id="description"
-                value={formData.description || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descrição</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="amount">Valor (R$)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  value={formData.amount || ''}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      amount: parseFloat(e.target.value),
-                    })
-                  }
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor (R$)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="date">Data</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, date: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="type">Tipo</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(val: any) =>
-                  setFormData({ ...formData, type: val })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Fixa">Fixa</SelectItem>
-                  <SelectItem value="Variável">Variável</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave}>Salvar</Button>
-          </DialogFooter>
+
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Fixa">Fixa</SelectItem>
+                        <SelectItem value="Variável">Variável</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit">Salvar</Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>
