@@ -105,15 +105,15 @@ export default function Despesas() {
     try {
       if (editingExpense) {
         await updateExpense(editingExpense.id, data)
-        toast.success('Despesa atualizada')
+        toast.success('Despesa atualizada com sucesso')
       } else {
         await addExpense(data)
-        toast.success('Despesa registrada')
+        toast.success('Despesa registrada com sucesso')
       }
       setIsModalOpen(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error(error)
-      toast.error('Erro ao salvar despesa')
+      toast.error(error.message || 'Erro ao salvar despesa')
     }
   }
 
@@ -122,8 +122,8 @@ export default function Despesas() {
       try {
         await deleteExpense(id)
         toast.success('Despesa excluída')
-      } catch (error) {
-        toast.error('Erro ao excluir despesa')
+      } catch (error: any) {
+        toast.error(error.message || 'Erro ao excluir despesa')
       }
     }
   }

@@ -130,18 +130,18 @@ export default function Financeiro() {
     try {
       if (editingPayment) {
         await updatePayment(editingPayment.id, data)
-        toast.success('Pagamento atualizado')
+        toast.success('Pagamento atualizado com sucesso')
       } else {
         await addPayment({
           ...data,
           procedureId: data.procedureId || undefined,
         })
-        toast.success('Pagamento registrado')
+        toast.success('Pagamento registrado com sucesso')
       }
       setIsModalOpen(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error(error)
-      toast.error('Erro ao salvar pagamento')
+      toast.error(error.message || 'Erro ao salvar pagamento')
     }
   }
 
@@ -150,8 +150,8 @@ export default function Financeiro() {
       try {
         await deletePayment(id)
         toast.success('Pagamento excluído')
-      } catch (error) {
-        toast.error('Erro ao excluir pagamento')
+      } catch (error: any) {
+        toast.error(error.message || 'Erro ao excluir pagamento')
       }
     }
   }
