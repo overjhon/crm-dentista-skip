@@ -12,50 +12,140 @@ import {
   BarChart,
   CartesianGrid,
   XAxis,
+  YAxis,
   PieChart,
   Pie,
   Cell,
   ResponsiveContainer,
   Legend,
 } from 'recharts'
-import { format, isSameMonth, parseISO } from 'date-fns'
+import {
+  format,
+  isSameMonth,
+  parseISO,
+  subMonths,
+  isSameYear,
+  startOfDay,
+  isAfter,
+  isEqual,
+} from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'sonner'
+import { formatCurrency } from '@/lib/utils'
 
 export default function Dashboard() {
   const { payments, patients, appointments, settings } = useAppStore()
 
+  const today = startOfDay(new Date())
   const currentMonth = new Date()
 
-  // Metrics
+  // 1. Faturamento Mensal
+  // Sum of 'Pago' transactions in the current month
   const monthlyRevenue = payments
     .filter(
-      (p) => p.status === 'Pago' && isSameMonth(parseISO(p.date), currentMonth),
+      (p) =>
+        p.status === 'Pago' &&
+        isSameMonth(parseISO(p.date), currentMonth) &&
+        isSameYear(parseISO(p.date), currentMonth),
     )
     .reduce((acc, curr) => acc + curr.amount, 0)
 
+  // 2. Pendências Financeiras
+  // Sum of 'Pendente' or 'Atrasado' transactions
   const pendingAmount = payments
     .filter((p) => p.status === 'Pendente' || p.status === 'Atrasado')
     .reduce((acc, curr) => acc + curr.amount, 0)
 
-  const activePatients = patients.filter(
-    (p) => p.status === 'Em Atendimento' || p.status === 'Aguardando Pagamento',
-  ).length
+  // 3. Pacientes Ativos
+  // Total count of records in patients table
+  const activePatients = patients.length
+
+  // New leads for context (optional, keeping existing logic for sub-text)
   const newLeads = patients.filter(
     (p) =>
       p.status === 'Novo' && isSameMonth(parseISO(p.createdAt), currentMonth),
   ).length
 
+  // 4. Consultas Realizadas no Mês
+  // Count of 'Realizada' appointments in the current month
   const monthlyAppointments = appointments.filter(
     (a) =>
-      a.status === 'Realizada' && isSameMonth(parseISO(a.date), currentMonth),
+      a.status === 'Realizada' &&
+      isSameMonth(parseISO(a.date), currentMonth) &&
+      isSameYear(parseISO(a.date), currentMonth),
   ).length
-  const nextAppointments = appointments
-    .filter((a) => a.status === 'Confirmada' && parseISO(a.date) >= new Date())
-    .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
-    .slice(0, 3)
 
-  // Pending Balances Logic
+  // 5. Evolução do Faturamento Semestral Graph
+  // Last 6 months revenue
+  const last6Months = Array.from({ length: 6 }, (_, i) => {
+    const d = subMonths(new Date(), 5 - i)
+    return d
+  })
+
+  const revenueData = last6Months.map((date) => {
+    const revenue = payments
+      .filter(
+        (p) =>
+          p.status === 'Pago' &&
+          isSameMonth(parseISO(p.date), date) &&
+          isSameYear(parseISO(p.date), date),
+      )
+      .reduce((acc, curr) => acc + curr.amount, 0)
+
+    return {
+      month: format(date, 'MMM', { locale: ptBR }),
+      fullDate: format(date, 'MMMM yyyy', { locale: ptBR }),
+      revenue,
+    }
+  })
+
+  // 6. Distribuição de Procedimentos Populares Graph
+  // Count of appointments grouped by procedure name
+  const procedureCounts = appointments.reduce(
+    (acc, curr) => {
+      const name = curr.procedure || 'Outros'
+      acc[name] = (acc[name] || 0) + 1
+      return acc
+    },
+    {} as Record<string, number>,
+  )
+
+  const procedureData = Object.entries(procedureCounts)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5) // Top 5 procedures
+
+  const COLORS = [
+    'hsl(var(--chart-1))',
+    'hsl(var(--chart-2))',
+    'hsl(var(--chart-3))',
+    'hsl(var(--chart-4))',
+    'hsl(var(--chart-5))',
+  ]
+
+  // 7. Próximas Consultas List
+  // Appointments today or in the future
+  const nextAppointments = appointments
+    .filter((a) => {
+      const apptDate = parseISO(a.date)
+      // Filter for confirmed appointments today or in the future
+      return (
+        a.status === 'Confirmada' &&
+        (isAfter(apptDate, today) || isEqual(apptDate, today))
+      )
+    })
+    .sort((a, b) => {
+      const dateA = parseISO(a.date).getTime()
+      const dateB = parseISO(b.date).getTime()
+      if (dateA === dateB) {
+        return a.time.localeCompare(b.time)
+      }
+      return dateA - dateB
+    })
+    .slice(0, 5) // Show top 5
+
+  // 8. Pacientes com Saldo Pendente List
+  // Group pending payments by patient
   const pendingPayments = payments.filter(
     (p) => p.status === 'Pendente' || p.status === 'Atrasado',
   )
@@ -91,13 +181,10 @@ export default function Dashboard() {
 
     const promise = new Promise((resolve, reject) => {
       try {
-        // In a real scenario, we would fetch the webhook
-        // await fetch(webhookUrl, { method: 'POST', body: JSON.stringify({ patientName, amount }) })
-
         // Simulating network request
         setTimeout(() => {
           console.log(
-            `Sending webhook to ${webhookUrl} for ${patientName} - R$ ${amount}`,
+            `Sending webhook to ${webhookUrl} for ${patientName} - ${formatCurrency(amount)}`,
           )
           resolve(true)
         }, 1500)
@@ -113,29 +200,6 @@ export default function Dashboard() {
     })
   }
 
-  // Chart Data
-  const revenueData = [
-    { month: 'Jan', revenue: 12000 },
-    { month: 'Fev', revenue: 15000 },
-    { month: 'Mar', revenue: 18000 },
-    { month: 'Abr', revenue: 14000 },
-    { month: 'Mai', revenue: 20000 },
-    { month: 'Jun', revenue: monthlyRevenue || 22000 },
-  ]
-
-  const procedureData = [
-    { name: 'Limpeza', value: 40 },
-    { name: 'Canal', value: 25 },
-    { name: 'Extração', value: 15 },
-    { name: 'Implante', value: 20 },
-  ]
-  const COLORS = [
-    'hsl(var(--chart-1))',
-    'hsl(var(--chart-2))',
-    'hsl(var(--chart-3))',
-    'hsl(var(--chart-4))',
-  ]
-
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Summary Cards */}
@@ -149,19 +213,21 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              R$ {monthlyRevenue.toFixed(2)}
+              {formatCurrency(monthlyRevenue)}
             </div>
             <p className="text-xs text-muted-foreground">Mês atual</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pendências</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Pendências Financeiras
+            </CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">
-              R$ {pendingAmount.toFixed(2)}
+              {formatCurrency(pendingAmount)}
             </div>
             <p className="text-xs text-muted-foreground">A receber</p>
           </CardContent>
@@ -176,7 +242,7 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{activePatients}</div>
             <p className="text-xs text-muted-foreground">
-              +{newLeads} novos este mês
+              Total de pacientes cadastrados
             </p>
           </CardContent>
         </Card>
@@ -198,7 +264,7 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle>Faturamento Semestral</CardTitle>
+            <CardTitle>Evolução do Faturamento Semestral</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
             <ChartContainer
@@ -210,11 +276,21 @@ export default function Dashboard() {
               <BarChart data={revenueData}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <YAxis
+                  tickFormatter={(value) => formatCurrency(value)}
+                  tickLine={false}
+                  axisLine={false}
+                  width={80}
+                />
+                <ChartTooltip
+                  content={<ChartTooltipContent />}
+                  formatter={(value: number) => formatCurrency(value)}
+                />
                 <Bar
                   dataKey="revenue"
                   fill="var(--color-revenue)"
                   radius={[4, 4, 0, 0]}
+                  name="Faturamento"
                 />
               </BarChart>
             </ChartContainer>
@@ -226,28 +302,34 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={procedureData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {procedureData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Legend />
-                  <ChartTooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              {procedureData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={procedureData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {procedureData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Legend />
+                    <ChartTooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center text-muted-foreground">
+                  Sem dados de procedimentos
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -316,7 +398,7 @@ export default function Dashboard() {
                       <div>
                         <p className="font-medium">{patient.name}</p>
                         <p className="text-xs text-destructive font-semibold">
-                          R$ {patient.amount.toFixed(2)}
+                          {formatCurrency(patient.amount)}
                         </p>
                       </div>
                     </div>

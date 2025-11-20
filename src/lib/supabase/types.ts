@@ -29,11 +29,11 @@ export type Database = {
           lembrete_3h: string | null
           lembrete_3h_Enviado: string | null
           localizacao: string | null
-          nome_cliente: string
           nome_profissional: string
           numero: number | null
           observacoes_cliente: string | null
-          procedimentos: string | null
+          paciente_id: string
+          procedimento_id: string
           Status: string | null
         }
         Insert: {
@@ -49,11 +49,11 @@ export type Database = {
           lembrete_3h?: string | null
           lembrete_3h_Enviado?: string | null
           localizacao?: string | null
-          nome_cliente: string
           nome_profissional: string
           numero?: number | null
           observacoes_cliente?: string | null
-          procedimentos?: string | null
+          paciente_id: string
+          procedimento_id: string
           Status?: string | null
         }
         Update: {
@@ -69,14 +69,164 @@ export type Database = {
           lembrete_3h?: string | null
           lembrete_3h_Enviado?: string | null
           localizacao?: string | null
-          nome_cliente?: string
           nome_profissional?: string
           numero?: number | null
           observacoes_cliente?: string | null
-          procedimentos?: string | null
+          paciente_id?: string
+          procedimento_id?: string
           Status?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: 'agendamentos_paciente_id_fkey'
+            columns: ['paciente_id']
+            isOneToOne: false
+            referencedRelation: 'pacientes'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'agendamentos_procedimento_id_fkey'
+            columns: ['procedimento_id']
+            isOneToOne: false
+            referencedRelation: 'procedimentos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      despesas: {
+        Row: {
+          criado_em: string | null
+          data_despesa: string
+          descricao: string
+          id: string
+          tipo_despesa: string | null
+          valor: number
+        }
+        Insert: {
+          criado_em?: string | null
+          data_despesa: string
+          descricao: string
+          id?: string
+          tipo_despesa?: string | null
+          valor: number
+        }
+        Update: {
+          criado_em?: string | null
+          data_despesa?: string
+          descricao?: string
+          id?: string
+          tipo_despesa?: string | null
+          valor?: number
+        }
         Relationships: []
+      }
+      pacientes: {
+        Row: {
+          cpf: string
+          criado_em: string | null
+          email: string | null
+          endereco: string | null
+          id: string
+          nome_completo: string
+          observacoes: string | null
+          status: string | null
+          telefone: string | null
+        }
+        Insert: {
+          cpf: string
+          criado_em?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome_completo: string
+          observacoes?: string | null
+          status?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          cpf?: string
+          criado_em?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome_completo?: string
+          observacoes?: string | null
+          status?: string | null
+          telefone?: string | null
+        }
+        Relationships: []
+      }
+      procedimentos: {
+        Row: {
+          criado_em: string | null
+          descricao: string | null
+          id: string
+          nome_procedimento: string
+          valor_padrao: number
+        }
+        Insert: {
+          criado_em?: string | null
+          descricao?: string | null
+          id?: string
+          nome_procedimento: string
+          valor_padrao: number
+        }
+        Update: {
+          criado_em?: string | null
+          descricao?: string | null
+          id?: string
+          nome_procedimento?: string
+          valor_padrao?: number
+        }
+        Relationships: []
+      }
+      transacoes_financeiras: {
+        Row: {
+          criado_em: string | null
+          data_transacao: string
+          forma_pagamento: string | null
+          id: string
+          paciente_id: string
+          procedimento_id: string | null
+          status_pagamento: string
+          valor: number
+        }
+        Insert: {
+          criado_em?: string | null
+          data_transacao: string
+          forma_pagamento?: string | null
+          id?: string
+          paciente_id: string
+          procedimento_id?: string | null
+          status_pagamento: string
+          valor: number
+        }
+        Update: {
+          criado_em?: string | null
+          data_transacao?: string
+          forma_pagamento?: string | null
+          id?: string
+          paciente_id?: string
+          procedimento_id?: string | null
+          status_pagamento?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'transacoes_financeiras_paciente_id_fkey'
+            columns: ['paciente_id']
+            isOneToOne: false
+            referencedRelation: 'pacientes'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'transacoes_financeiras_procedimento_id_fkey'
+            columns: ['procedimento_id']
+            isOneToOne: false
+            referencedRelation: 'procedimentos'
+            referencedColumns: ['id']
+          },
+        ]
       }
     }
     Views: {
