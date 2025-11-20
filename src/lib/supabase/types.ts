@@ -128,7 +128,7 @@ export type Database = {
       }
       pacientes: {
         Row: {
-          cpf: string
+          cpf: string | null
           criado_em: string | null
           email: string | null
           endereco: string | null
@@ -139,7 +139,7 @@ export type Database = {
           telefone: string | null
         }
         Insert: {
-          cpf: string
+          cpf?: string | null
           criado_em?: string | null
           email?: string | null
           endereco?: string | null
@@ -150,7 +150,7 @@ export type Database = {
           telefone?: string | null
         }
         Update: {
-          cpf?: string
+          cpf?: string | null
           criado_em?: string | null
           email?: string | null
           endereco?: string | null
@@ -168,21 +168,21 @@ export type Database = {
           descricao: string | null
           id: string
           nome_procedimento: string
-          valor_padrao: number
+          valor_padrao: number | null
         }
         Insert: {
           criado_em?: string | null
           descricao?: string | null
           id?: string
           nome_procedimento: string
-          valor_padrao?: number
+          valor_padrao?: number | null
         }
         Update: {
           criado_em?: string | null
           descricao?: string | null
           id?: string
           nome_procedimento?: string
-          valor_padrao?: number
+          valor_padrao?: number | null
         }
         Relationships: []
       }

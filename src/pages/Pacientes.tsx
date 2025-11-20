@@ -114,12 +114,14 @@ export default function Pacientes() {
     switch (status) {
       case 'Novo':
         return 'bg-blue-500'
+      case 'Confirmada':
+        return 'bg-green-600'
       case 'Em Atendimento':
         return 'bg-yellow-500'
       case 'Aguardando Pagamento':
         return 'bg-orange-500'
       case 'Finalizado':
-        return 'bg-green-500'
+        return 'bg-gray-500'
       default:
         return 'bg-gray-500'
     }
@@ -153,6 +155,7 @@ export default function Pacientes() {
               <TableHead>Nome</TableHead>
               <TableHead>CPF</TableHead>
               <TableHead>Telefone</TableHead>
+              <TableHead>Observações</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -161,7 +164,7 @@ export default function Pacientes() {
             {filteredPatients.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="text-center py-8 text-muted-foreground"
                 >
                   Nenhum paciente encontrado.
@@ -173,6 +176,12 @@ export default function Pacientes() {
                   <TableCell className="font-medium">{patient.name}</TableCell>
                   <TableCell>{patient.cpf}</TableCell>
                   <TableCell>{patient.phone}</TableCell>
+                  <TableCell
+                    className="max-w-[200px] truncate"
+                    title={patient.notes}
+                  >
+                    {patient.notes}
+                  </TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(patient.status)}>
                       {patient.status}
@@ -284,6 +293,7 @@ export default function Pacientes() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Novo">Novo</SelectItem>
+                  <SelectItem value="Confirmada">Confirmada</SelectItem>
                   <SelectItem value="Em Atendimento">Em Atendimento</SelectItem>
                   <SelectItem value="Aguardando Pagamento">
                     Aguardando Pagamento
@@ -293,13 +303,14 @@ export default function Pacientes() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="notes">Observações</Label>
+              <Label htmlFor="notes">Observações Gerais</Label>
               <Textarea
                 id="notes"
                 value={formData.notes || ''}
                 onChange={(e) =>
                   setFormData({ ...formData, notes: e.target.value })
                 }
+                placeholder="Observações gerais sobre o paciente (ex: alergias, histórico)"
               />
             </div>
           </div>

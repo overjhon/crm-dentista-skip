@@ -170,6 +170,11 @@ export default function Agenda() {
                       <p className="text-sm text-muted-foreground">
                         {appt.procedure}
                       </p>
+                      {appt.notes && (
+                        <p className="text-xs text-muted-foreground mt-1 italic">
+                          "{appt.notes}"
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -287,13 +292,14 @@ export default function Agenda() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="notes">Observações</Label>
+              <Label htmlFor="notes">Observações do Agendamento</Label>
               <Textarea
                 id="notes"
                 value={formData.notes || ''}
                 onChange={(e) =>
                   setFormData({ ...formData, notes: e.target.value })
                 }
+                placeholder="Observações específicas deste agendamento"
               />
             </div>
           </div>

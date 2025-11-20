@@ -13,7 +13,12 @@ export interface Patient {
   phone: string
   email: string
   address: string
-  status: 'Novo' | 'Em Atendimento' | 'Aguardando Pagamento' | 'Finalizado'
+  status:
+    | 'Novo'
+    | 'Em Atendimento'
+    | 'Aguardando Pagamento'
+    | 'Finalizado'
+    | 'Confirmada'
   notes: string
   createdAt: string
 }
