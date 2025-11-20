@@ -17,6 +17,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Edit, Trash2, Search } from 'lucide-react'
 import { toast } from 'sonner'
@@ -32,26 +39,15 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form'
 
 const expenseSchema = z.object({
   description: z.string().min(1, 'Descrição é obrigatória'),
   amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
   date: z.string().min(1, 'Data é obrigatória'),
-  type: z
-    .string()
-    .optional()
-    .transform((val) => {
-      if (!val) return undefined
-      const lower = val.trim().toLowerCase()
-      if (['fixa', 'fixo'].includes(lower)) return 'Fixa'
-      if (['variável', 'variavel', 'var'].includes(lower)) return 'Variável'
-      return val
-    })
-    .refine((val) => !val || ['Fixa', 'Variável'].includes(val), {
-      message: "Tipo inválido. Use 'Fixa' ou 'Variável'.",
-    }),
+  type: z.enum(['Fixa', 'Variável'], {
+    required_error: 'Tipo é obrigatório',
+  }),
 })
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>
@@ -68,7 +64,7 @@ export default function Despesas() {
       description: '',
       amount: 0,
       date: format(new Date(), 'yyyy-MM-dd'),
-      type: undefined,
+      type: 'Fixa',
     },
   })
 
@@ -79,14 +75,14 @@ export default function Despesas() {
           description: editingExpense.description,
           amount: editingExpense.amount,
           date: editingExpense.date,
-          type: editingExpense.type,
+          type: editingExpense.type || 'Fixa',
         })
       } else {
         form.reset({
           description: '',
           amount: 0,
           date: format(new Date(), 'yyyy-MM-dd'),
-          type: undefined,
+          type: 'Fixa',
         })
       }
     }
@@ -271,17 +267,22 @@ export default function Despesas() {
                 name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tipo (Opcional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        value={field.value || ''}
-                        placeholder="Ex: Fixa, Variável"
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Aceita: Fixa, Variável (Maiúsculas/Minúsculas)
-                    </FormDescription>
+                    <FormLabel>Tipo</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Fixa">Fixa</SelectItem>
+                        <SelectItem value="Variável">Variável</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

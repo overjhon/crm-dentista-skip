@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import useAppStore from '@/stores/useAppStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { DollarSign, Users, Calendar, Clock, MessageCircle } from 'lucide-react'
+import { DollarSign, Users, Calendar, Clock, Info } from 'lucide-react'
 import {
   ChartContainer,
   ChartTooltip,
@@ -32,9 +33,19 @@ import {
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import { Patient } from '@/types'
 
 export default function Dashboard() {
-  const { payments, patients, appointments, settings } = useAppStore()
+  const { payments, patients, appointments } = useAppStore()
+  const [viewingPatient, setViewingPatient] = useState<Patient | null>(null)
+  const [isPatientModalOpen, setIsPatientModalOpen] = useState(false)
 
   const today = startOfDay(new Date())
   const currentMonth = new Date()
@@ -157,32 +168,14 @@ export default function Dashboard() {
 
   const pendingPatientsList = Object.values(patientBalances)
 
-  const handleSendMessage = async (patientName: string, amount: number) => {
-    const webhookUrl = settings.webhookBilling
-
-    if (!webhookUrl) {
-      toast.error('URL do Webhook de cobrança não configurada.')
-      return
+  const handleOpenPatientInfo = (patientId: string) => {
+    const patient = patients.find((p) => p.id === patientId)
+    if (patient) {
+      setViewingPatient(patient)
+      setIsPatientModalOpen(true)
+    } else {
+      toast.error('Paciente não encontrado')
     }
-
-    const promise = new Promise((resolve, reject) => {
-      try {
-        setTimeout(() => {
-          console.log(
-            `Sending webhook to ${webhookUrl} for ${patientName} - ${formatCurrency(amount)}`,
-          )
-          resolve(true)
-        }, 1500)
-      } catch (error) {
-        reject(error)
-      }
-    })
-
-    toast.promise(promise, {
-      loading: 'Enviando mensagem...',
-      success: `Mensagem enviada para ${patientName}!`,
-      error: 'Erro ao enviar mensagem',
-    })
   }
 
   return (
@@ -391,12 +384,12 @@ export default function Dashboard() {
                       size="sm"
                       variant="outline"
                       className="gap-2"
-                      onClick={() =>
-                        handleSendMessage(patient.name, patient.amount)
-                      }
+                      onClick={() => handleOpenPatientInfo(patient.id)}
                     >
-                      <MessageCircle className="h-3 w-3" />
-                      <span className="hidden sm:inline">Mandar Mensagem</span>
+                      <Info className="h-3 w-3" />
+                      <span className="hidden sm:inline">
+                        Abrir Informações
+                      </span>
                     </Button>
                   </div>
                 ))
@@ -405,6 +398,59 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={isPatientModalOpen} onOpenChange={setIsPatientModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Informações do Paciente</DialogTitle>
+            <DialogDescription>Detalhes do cadastro</DialogDescription>
+          </DialogHeader>
+          {viewingPatient && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Nome
+                  </p>
+                  <p className="font-medium">{viewingPatient.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    CPF
+                  </p>
+                  <p>{viewingPatient.cpf}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Telefone
+                  </p>
+                  <p>{viewingPatient.phone}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    E-mail
+                  </p>
+                  <p>{viewingPatient.email}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Endereço
+                  </p>
+                  <p>{viewingPatient.address}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Observações
+                  </p>
+                  <p className="text-sm">
+                    {viewingPatient.notes || 'Nenhuma observação.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
