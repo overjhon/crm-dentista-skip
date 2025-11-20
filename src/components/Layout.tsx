@@ -2,12 +2,21 @@ import { Outlet, Navigate } from 'react-router-dom'
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/AppSidebar'
 import { AppHeader } from '@/components/AppHeader'
-import useAppStore from '@/stores/useAppStore'
+import { useAuth } from '@/hooks/use-auth'
+import { Loader2 } from 'lucide-react'
 
 export default function Layout() {
-  const { isAuthenticated } = useAppStore()
+  const { session, loading } = useAuth()
 
-  if (!isAuthenticated) {
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!session) {
     return <Navigate to="/login" replace />
   }
 

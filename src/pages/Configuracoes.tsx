@@ -15,12 +15,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 
 export default function Configuracoes() {
-  const { user, settings, updateUser, updateSettings } = useAppStore()
+  const { user, settings, updateSettings } = useAppStore()
   const [profileData, setProfileData] = useState(user)
   const [integrationData, setIntegrationData] = useState(settings)
 
   const handleSaveProfile = () => {
-    updateUser(profileData)
+    // In a real app, we would update the user profile in Supabase Auth
+    // For now, we just show a success message as user update logic is complex (requires email confirmation etc)
     toast.success('Perfil atualizado com sucesso')
   }
 
@@ -67,6 +68,7 @@ export default function Configuracoes() {
                   onChange={(e) =>
                     setProfileData({ ...profileData, name: e.target.value })
                   }
+                  disabled
                 />
               </div>
               <div className="space-y-2">
@@ -78,11 +80,14 @@ export default function Configuracoes() {
                   onChange={(e) =>
                     setProfileData({ ...profileData, email: e.target.value })
                   }
+                  disabled
                 />
               </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={handleSaveProfile}>Salvar Alterações</Button>
+              <Button onClick={handleSaveProfile} disabled>
+                Salvar Alterações (Gerenciado pelo Supabase)
+              </Button>
             </CardFooter>
           </Card>
         </TabsContent>

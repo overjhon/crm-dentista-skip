@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react'
 import {
   Patient,
   Appointment,
@@ -6,266 +6,231 @@ import {
   Expense,
   UserProfile,
   IntegrationSettings,
+  Procedure,
 } from '@/types'
-import { addDays, format, subDays } from 'date-fns'
+import { useAuth } from '@/hooks/use-auth'
+import * as patientService from '@/services/patients'
+import * as appointmentService from '@/services/appointments'
+import * as financialService from '@/services/financial'
+import * as expenseService from '@/services/expenses'
+import * as procedureService from '@/services/procedures'
+import { toast } from 'sonner'
 
 interface AppState {
-  isAuthenticated: boolean
   user: UserProfile
   patients: Patient[]
   appointments: Appointment[]
   payments: Payment[]
   expenses: Expense[]
+  procedures: Procedure[]
   settings: IntegrationSettings
-  login: (email: string) => void
-  logout: () => void
-  updateUser: (user: UserProfile) => void
-  addPatient: (patient: Omit<Patient, 'id' | 'createdAt'>) => void
-  updatePatient: (id: string, data: Partial<Patient>) => void
-  deletePatient: (id: string) => void
-  addAppointment: (appointment: Omit<Appointment, 'id'>) => void
-  updateAppointment: (id: string, data: Partial<Appointment>) => void
-  deleteAppointment: (id: string) => void
-  addPayment: (payment: Omit<Payment, 'id'>) => void
-  updatePayment: (id: string, data: Partial<Payment>) => void
-  deletePayment: (id: string) => void
-  addExpense: (expense: Omit<Expense, 'id'>) => void
-  updateExpense: (id: string, data: Partial<Expense>) => void
-  deleteExpense: (id: string) => void
+  loading: boolean
+  refreshData: () => Promise<void>
+  addPatient: (patient: Omit<Patient, 'id' | 'createdAt'>) => Promise<void>
+  updatePatient: (id: string, data: Partial<Patient>) => Promise<void>
+  deletePatient: (id: string) => Promise<void>
+  addAppointment: (
+    appointment: Omit<Appointment, 'id' | 'patientName' | 'procedure'>,
+  ) => Promise<void>
+  updateAppointment: (id: string, data: Partial<Appointment>) => Promise<void>
+  deleteAppointment: (id: string) => Promise<void>
+  addPayment: (
+    payment: Omit<Payment, 'id' | 'patientName' | 'procedure'>,
+  ) => Promise<void>
+  updatePayment: (id: string, data: Partial<Payment>) => Promise<void>
+  deletePayment: (id: string) => Promise<void>
+  addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>
+  updateExpense: (id: string, data: Partial<Expense>) => Promise<void>
+  deleteExpense: (id: string) => Promise<void>
   updateSettings: (settings: IntegrationSettings) => void
 }
 
 const AppContext = createContext<AppState | undefined>(undefined)
 
-const MOCK_PATIENTS: Patient[] = [
-  {
-    id: '1',
-    name: 'Ana Silva',
-    cpf: '12345678900',
-    birthDate: '1990-05-15',
-    phone: '(11) 99999-1111',
-    email: 'ana@example.com',
-    address: 'Rua A, 123',
-    status: 'Em Atendimento',
-    notes: 'Alergia a penicilina',
-    createdAt: '2023-01-10',
-  },
-  {
-    id: '2',
-    name: 'Bruno Souza',
-    cpf: '23456789011',
-    birthDate: '1985-08-20',
-    phone: '(11) 98888-2222',
-    email: 'bruno@example.com',
-    address: 'Av B, 456',
-    status: 'Novo',
-    notes: '',
-    createdAt: '2023-02-15',
-  },
-  {
-    id: '3',
-    name: 'Carla Dias',
-    cpf: '34567890122',
-    birthDate: '1995-12-01',
-    phone: '(11) 97777-3333',
-    email: 'carla@example.com',
-    address: 'Travessa C, 789',
-    status: 'Aguardando Pagamento',
-    notes: 'Tratamento de canal',
-    createdAt: '2023-03-20',
-  },
-  {
-    id: '4',
-    name: 'Daniel Oliveira',
-    cpf: '45678901233',
-    birthDate: '1988-03-10',
-    phone: '(11) 96666-4444',
-    email: 'daniel@example.com',
-    address: 'Rua D, 101',
-    status: 'Aguardando Pagamento',
-    notes: '',
-    createdAt: '2023-04-05',
-  },
-]
-
-const MOCK_APPOINTMENTS: Appointment[] = [
-  {
-    id: '1',
-    patientId: '1',
-    patientName: 'Ana Silva',
-    date: format(new Date(), 'yyyy-MM-dd'),
-    time: '09:00',
-    procedure: 'Limpeza',
-    status: 'Confirmada',
-    notes: '',
-  },
-  {
-    id: '2',
-    patientId: '2',
-    patientName: 'Bruno Souza',
-    date: format(addDays(new Date(), 1), 'yyyy-MM-dd'),
-    time: '14:00',
-    procedure: 'Avaliação',
-    status: 'Confirmada',
-    notes: '',
-  },
-  {
-    id: '3',
-    patientId: '3',
-    patientName: 'Carla Dias',
-    date: format(subDays(new Date(), 2), 'yyyy-MM-dd'),
-    time: '10:00',
-    procedure: 'Canal',
-    status: 'Realizada',
-    notes: 'Paciente sentiu dor leve',
-  },
-  {
-    id: '4',
-    patientId: '1',
-    patientName: 'Ana Silva',
-    date: '2025-11-18',
-    time: '15:00',
-    procedure: 'Retorno Anual',
-    status: 'Confirmada',
-    notes: 'Agendamento futuro para 2025',
-  },
-]
-
-const MOCK_PAYMENTS: Payment[] = [
-  {
-    id: '1',
-    patientId: '1',
-    patientName: 'Ana Silva',
-    procedure: 'Limpeza',
-    amount: 250,
-    date: format(subDays(new Date(), 5), 'yyyy-MM-dd'),
-    status: 'Pago',
-    method: 'PIX',
-    notes: '',
-  },
-  {
-    id: '2',
-    patientId: '3',
-    patientName: 'Carla Dias',
-    procedure: 'Canal',
-    amount: 800,
-    date: format(subDays(new Date(), 2), 'yyyy-MM-dd'),
-    status: 'Pendente',
-    method: 'Cartão',
-    notes: 'Parcelado em 2x',
-  },
-  {
-    id: '3',
-    patientId: '4',
-    patientName: 'Daniel Oliveira',
-    procedure: 'Implante',
-    amount: 1500,
-    date: format(subDays(new Date(), 10), 'yyyy-MM-dd'),
-    status: 'Atrasado',
-    method: 'Boleto',
-    notes: 'Vencido há 5 dias',
-  },
-]
-
-const MOCK_EXPENSES: Expense[] = [
-  {
-    id: '1',
-    description: 'Aluguel Consultório',
-    amount: 2500,
-    type: 'Fixa',
-    date: format(new Date(), 'yyyy-MM-05'),
-    notes: '',
-  },
-  {
-    id: '2',
-    description: 'Material Descartável',
-    amount: 450,
-    type: 'Variável',
-    date: format(subDays(new Date(), 10), 'yyyy-MM-dd'),
-    notes: 'Luvas e máscaras',
-  },
-]
-
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const { user: authUser } = useAuth()
   const [user, setUser] = useState<UserProfile>({
+    id: '',
     name: 'Dr. Everson Monteiro',
-    email: 'dr.everson@example.com',
+    email: '',
   })
-  const [patients, setPatients] = useState<Patient[]>(MOCK_PATIENTS)
-  const [appointments, setAppointments] =
-    useState<Appointment[]>(MOCK_APPOINTMENTS)
-  const [payments, setPayments] = useState<Payment[]>(MOCK_PAYMENTS)
-  const [expenses, setExpenses] = useState<Expense[]>(MOCK_EXPENSES)
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [procedures, setProcedures] = useState<Procedure[]>([])
   const [settings, setSettings] = useState<IntegrationSettings>({
     webhookConfirmation: '',
     webhookReminder: '',
     webhookBilling: '',
   })
+  const [loading, setLoading] = useState(false)
 
-  const login = () => setIsAuthenticated(true)
-  const logout = () => setIsAuthenticated(false)
-  const updateUser = (data: UserProfile) => setUser(data)
-
-  const addPatient = (data: Omit<Patient, 'id' | 'createdAt'>) => {
-    const newPatient: Patient = {
-      ...data,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date().toISOString(),
+  useEffect(() => {
+    if (authUser) {
+      setUser({
+        id: authUser.id,
+        name: authUser.user_metadata?.name || 'Dr. Everson Monteiro',
+        email: authUser.email || '',
+      })
+      refreshData()
+    } else {
+      // Clear data on logout
+      setPatients([])
+      setAppointments([])
+      setPayments([])
+      setExpenses([])
+      setProcedures([])
     }
-    setPatients([...patients, newPatient])
-  }
-  const updatePatient = (id: string, data: Partial<Patient>) => {
-    setPatients(patients.map((p) => (p.id === id ? { ...p, ...data } : p)))
-  }
-  const deletePatient = (id: string) => {
-    setPatients(patients.filter((p) => p.id !== id))
+  }, [authUser])
+
+  const refreshData = async () => {
+    setLoading(true)
+    try {
+      const [p, a, f, e, proc] = await Promise.all([
+        patientService.getPatients(),
+        appointmentService.getAppointments(),
+        financialService.getPayments(),
+        expenseService.getExpenses(),
+        procedureService.getProcedures(),
+      ])
+      setPatients(p)
+      setAppointments(a)
+      setPayments(f)
+      setExpenses(e)
+      setProcedures(proc)
+    } catch (error) {
+      console.error('Error fetching data:', error)
+      toast.error('Erro ao carregar dados')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const addAppointment = (data: Omit<Appointment, 'id'>) => {
-    const newAppt: Appointment = {
-      ...data,
-      id: Math.random().toString(36).substr(2, 9),
+  const addPatient = async (data: Omit<Patient, 'id' | 'createdAt'>) => {
+    try {
+      await patientService.createPatient(data)
+      await refreshData()
+    } catch (error) {
+      console.error(error)
+      throw error
     }
-    setAppointments([...appointments, newAppt])
-  }
-  const updateAppointment = (id: string, data: Partial<Appointment>) => {
-    setAppointments(
-      appointments.map((a) => (a.id === id ? { ...a, ...data } : a)),
-    )
-  }
-  const deleteAppointment = (id: string) => {
-    setAppointments(appointments.filter((a) => a.id !== id))
   }
 
-  const addPayment = (data: Omit<Payment, 'id'>) => {
-    const newPayment: Payment = {
-      ...data,
-      id: Math.random().toString(36).substr(2, 9),
+  const updatePatient = async (id: string, data: Partial<Patient>) => {
+    try {
+      await patientService.updatePatient(id, data)
+      await refreshData()
+    } catch (error) {
+      console.error(error)
+      throw error
     }
-    setPayments([...payments, newPayment])
-  }
-  const updatePayment = (id: string, data: Partial<Payment>) => {
-    setPayments(payments.map((p) => (p.id === id ? { ...p, ...data } : p)))
-  }
-  const deletePayment = (id: string) => {
-    setPayments(payments.filter((p) => p.id !== id))
   }
 
-  const addExpense = (data: Omit<Expense, 'id'>) => {
-    const newExpense: Expense = {
-      ...data,
-      id: Math.random().toString(36).substr(2, 9),
+  const deletePatient = async (id: string) => {
+    try {
+      await patientService.deletePatient(id)
+      await refreshData()
+    } catch (error) {
+      console.error(error)
+      throw error
     }
-    setExpenses([...expenses, newExpense])
   }
-  const updateExpense = (id: string, data: Partial<Expense>) => {
-    setExpenses(expenses.map((e) => (e.id === id ? { ...e, ...data } : e)))
+
+  const addAppointment = async (
+    data: Omit<Appointment, 'id' | 'patientName' | 'procedure'>,
+  ) => {
+    try {
+      await appointmentService.createAppointment(data)
+      await refreshData()
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
   }
-  const deleteExpense = (id: string) => {
-    setExpenses(expenses.filter((e) => e.id !== id))
+
+  const updateAppointment = async (id: string, data: Partial<Appointment>) => {
+    try {
+      await appointmentService.updateAppointment(id, data)
+      await refreshData()
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
+  }
+
+  const deleteAppointment = async (id: string) => {
+    try {
+      await appointmentService.deleteAppointment(id)
+      await refreshData()
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
+  }
+
+  const addPayment = async (
+    data: Omit<Payment, 'id' | 'patientName' | 'procedure'>,
+  ) => {
+    try {
+      await financialService.createPayment(data)
+      await refreshData()
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
+  }
+
+  const updatePayment = async (id: string, data: Partial<Payment>) => {
+    try {
+      await financialService.updatePayment(id, data)
+      await refreshData()
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
+  }
+
+  const deletePayment = async (id: string) => {
+    try {
+      await financialService.deletePayment(id)
+      await refreshData()
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
+  }
+
+  const addExpense = async (data: Omit<Expense, 'id'>) => {
+    try {
+      await expenseService.createExpense(data)
+      await refreshData()
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
+  }
+
+  const updateExpense = async (id: string, data: Partial<Expense>) => {
+    try {
+      await expenseService.updateExpense(id, data)
+      await refreshData()
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
+  }
+
+  const deleteExpense = async (id: string) => {
+    try {
+      await expenseService.deleteExpense(id)
+      await refreshData()
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
   }
 
   const updateSettings = (data: IntegrationSettings) => setSettings(data)
@@ -274,16 +239,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     AppContext.Provider,
     {
       value: {
-        isAuthenticated,
         user,
         patients,
         appointments,
         payments,
         expenses,
+        procedures,
         settings,
-        login,
-        logout,
-        updateUser,
+        loading,
+        refreshData,
         addPatient,
         updatePatient,
         deletePatient,

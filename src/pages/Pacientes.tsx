@@ -57,7 +57,7 @@ export default function Pacientes() {
 
   const cleanCPF = (value: string) => value.replace(/\D/g, '')
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name) {
       toast.error('Nome é obrigatório')
       return
@@ -85,20 +85,28 @@ export default function Pacientes() {
       return
     }
 
-    if (editingPatient) {
-      updatePatient(editingPatient.id, formData)
-      toast.success('Paciente atualizado com sucesso')
-    } else {
-      addPatient(formData as any)
-      toast.success('Paciente cadastrado com sucesso')
+    try {
+      if (editingPatient) {
+        await updatePatient(editingPatient.id, formData)
+        toast.success('Paciente atualizado com sucesso')
+      } else {
+        await addPatient(formData as any)
+        toast.success('Paciente cadastrado com sucesso')
+      }
+      setIsModalOpen(false)
+    } catch (error) {
+      toast.error('Erro ao salvar paciente')
     }
-    setIsModalOpen(false)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este paciente?')) {
-      deletePatient(id)
-      toast.success('Paciente excluído')
+      try {
+        await deletePatient(id)
+        toast.success('Paciente excluído')
+      } catch (error) {
+        toast.error('Erro ao excluir paciente')
+      }
     }
   }
 
@@ -232,17 +240,6 @@ export default function Pacientes() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="birthDate">Data de Nascimento</Label>
-                <Input
-                  id="birthDate"
-                  type="date"
-                  value={formData.birthDate || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, birthDate: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="phone">Telefone</Label>
                 <Input
                   id="phone"
@@ -252,17 +249,17 @@ export default function Pacientes() {
                   }
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-              />
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="address">Endereço</Label>

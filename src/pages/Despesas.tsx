@@ -56,26 +56,34 @@ export default function Despesas() {
     setIsModalOpen(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.description || !formData.amount) {
       toast.error('Descrição e Valor são obrigatórios')
       return
     }
 
-    if (editingExpense) {
-      updateExpense(editingExpense.id, formData)
-      toast.success('Despesa atualizada')
-    } else {
-      addExpense(formData as any)
-      toast.success('Despesa registrada')
+    try {
+      if (editingExpense) {
+        await updateExpense(editingExpense.id, formData)
+        toast.success('Despesa atualizada')
+      } else {
+        await addExpense(formData as any)
+        toast.success('Despesa registrada')
+      }
+      setIsModalOpen(false)
+    } catch (error) {
+      toast.error('Erro ao salvar despesa')
     }
-    setIsModalOpen(false)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Excluir esta despesa?')) {
-      deleteExpense(id)
-      toast.success('Despesa excluída')
+      try {
+        await deleteExpense(id)
+        toast.success('Despesa excluída')
+      } catch (error) {
+        toast.error('Erro ao excluir despesa')
+      }
     }
   }
 

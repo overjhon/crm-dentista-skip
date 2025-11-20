@@ -30,6 +30,7 @@ export default function Agenda() {
   const {
     appointments,
     patients,
+    procedures,
     addAppointment,
     updateAppointment,
     deleteAppointment,
@@ -59,29 +60,39 @@ export default function Agenda() {
     setIsModalOpen(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.patientId || !formData.date || !formData.time) {
       toast.error('Paciente, Data e Hora são obrigatórios')
       return
     }
 
-    const patient = patients.find((p) => p.id === formData.patientId)
-    const dataToSave = { ...formData, patientName: patient?.name || '' }
-
-    if (editingAppt) {
-      updateAppointment(editingAppt.id, dataToSave)
-      toast.success('Agendamento atualizado')
-    } else {
-      addAppointment(dataToSave as any)
-      toast.success('Agendamento criado')
+    if (!formData.procedureId) {
+      toast.error('Procedimento é obrigatório')
+      return
     }
-    setIsModalOpen(false)
+
+    try {
+      if (editingAppt) {
+        await updateAppointment(editingAppt.id, formData)
+        toast.success('Agendamento atualizado')
+      } else {
+        await addAppointment(formData as any)
+        toast.success('Agendamento criado')
+      }
+      setIsModalOpen(false)
+    } catch (error) {
+      toast.error('Erro ao salvar agendamento')
+    }
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Cancelar este agendamento?')) {
-      deleteAppointment(id)
-      toast.success('Agendamento cancelado')
+      try {
+        await deleteAppointment(id)
+        toast.success('Agendamento cancelado')
+      } catch (error) {
+        toast.error('Erro ao cancelar agendamento')
+      }
     }
   }
 
@@ -96,7 +107,6 @@ export default function Agenda() {
               onSelect={setSelectedDate}
               className="rounded-md border"
               locale={ptBR}
-              // Ensure navigation is enabled for future dates (e.g. 2025)
               fromDate={new Date(2020, 0, 1)}
               toDate={new Date(2030, 11, 31)}
             />
@@ -233,13 +243,23 @@ export default function Agenda() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="procedure">Procedimento</Label>
-              <Input
-                id="procedure"
-                value={formData.procedure || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, procedure: e.target.value })
+              <Select
+                value={formData.procedureId}
+                onValueChange={(val) =>
+                  setFormData({ ...formData, procedureId: val })
                 }
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o procedimento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {procedures.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name} - R$ {p.standardValue}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>

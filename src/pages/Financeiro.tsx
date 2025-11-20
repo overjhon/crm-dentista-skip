@@ -33,8 +33,14 @@ import { format, parseISO } from 'date-fns'
 import { FinancialBalances } from '@/components/FinancialBalances'
 
 export default function Financeiro() {
-  const { payments, patients, addPayment, updatePayment, deletePayment } =
-    useAppStore()
+  const {
+    payments,
+    patients,
+    procedures,
+    addPayment,
+    updatePayment,
+    deletePayment,
+  } = useAppStore()
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null)
@@ -61,29 +67,34 @@ export default function Financeiro() {
     setIsModalOpen(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.patientId || !formData.amount) {
       toast.error('Paciente e Valor são obrigatórios')
       return
     }
 
-    const patient = patients.find((p) => p.id === formData.patientId)
-    const dataToSave = { ...formData, patientName: patient?.name || '' }
-
-    if (editingPayment) {
-      updatePayment(editingPayment.id, dataToSave)
-      toast.success('Pagamento atualizado')
-    } else {
-      addPayment(dataToSave as any)
-      toast.success('Pagamento registrado')
+    try {
+      if (editingPayment) {
+        await updatePayment(editingPayment.id, formData)
+        toast.success('Pagamento atualizado')
+      } else {
+        await addPayment(formData as any)
+        toast.success('Pagamento registrado')
+      }
+      setIsModalOpen(false)
+    } catch (error) {
+      toast.error('Erro ao salvar pagamento')
     }
-    setIsModalOpen(false)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Excluir este pagamento?')) {
-      deletePayment(id)
-      toast.success('Pagamento excluído')
+      try {
+        await deletePayment(id)
+        toast.success('Pagamento excluído')
+      } catch (error) {
+        toast.error('Erro ao excluir pagamento')
+      }
     }
   }
 
@@ -204,13 +215,28 @@ export default function Financeiro() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="procedure">Procedimento</Label>
-              <Input
-                id="procedure"
-                value={formData.procedure || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, procedure: e.target.value })
-                }
-              />
+              <Select
+                value={formData.procedureId}
+                onValueChange={(val) => {
+                  const proc = procedures.find((p) => p.id === val)
+                  setFormData({
+                    ...formData,
+                    procedureId: val,
+                    amount: proc ? proc.standardValue : formData.amount,
+                  })
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o procedimento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {procedures.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

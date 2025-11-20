@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import useAppStore from '@/stores/useAppStore'
+import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,10 +19,10 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { login, isAuthenticated } = useAppStore()
+  const { signIn, session } = useAuth()
   const navigate = useNavigate()
 
-  if (isAuthenticated) {
+  if (session) {
     navigate('/')
     return null
   }
@@ -31,17 +31,19 @@ export default function Login() {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      if (email === 'admin' && password === 'everson123') {
-        login(email)
+    try {
+      const { error } = await signIn(email, password)
+      if (error) {
+        toast.error('Erro ao fazer login: ' + error.message)
+      } else {
         toast.success('Login realizado com sucesso!')
         navigate('/')
-      } else {
-        toast.error('Usuário ou senha inválidos.')
       }
+    } catch (error) {
+      toast.error('Ocorreu um erro inesperado.')
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
   return (
@@ -59,11 +61,11 @@ export default function Login() {
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Usuário</Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
-                type="text"
-                placeholder="admin"
+                type="email"
+                placeholder="seu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
