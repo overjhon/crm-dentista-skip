@@ -43,6 +43,7 @@ interface AppState {
   updateExpense: (id: string, data: Partial<Expense>) => Promise<void>
   deleteExpense: (id: string) => Promise<void>
   updateSettings: (settings: IntegrationSettings) => void
+  logout: () => Promise<void>
 }
 
 const AppContext = createContext<AppState | undefined>(undefined)
@@ -50,7 +51,7 @@ const AppContext = createContext<AppState | undefined>(undefined)
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { user: authUser } = useAuth()
+  const { user: authUser, signOut } = useAuth()
   const [user, setUser] = useState<UserProfile>({
     id: '',
     name: 'Dr. Everson Monteiro',
@@ -83,6 +84,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       setPayments([])
       setExpenses([])
       setProcedures([])
+      setUser({ id: '', name: '', email: '' })
     }
   }, [authUser])
 
@@ -235,6 +237,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const updateSettings = (data: IntegrationSettings) => setSettings(data)
 
+  const logout = async () => {
+    try {
+      await signOut()
+      // State clearing is handled by the useEffect when authUser becomes null
+      toast.success('Logout realizado com sucesso')
+    } catch (error: any) {
+      console.error('Logout error:', error)
+      toast.error('Erro ao sair: ' + error.message)
+    }
+  }
+
   return React.createElement(
     AppContext.Provider,
     {
@@ -261,6 +274,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         updateExpense,
         deleteExpense,
         updateSettings,
+        logout,
       },
     },
     children,
