@@ -31,7 +31,7 @@ import { Payment } from '@/types'
 import { format, parseISO } from 'date-fns'
 import { FinancialBalances } from '@/components/FinancialBalances'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { zodResolver } from '@/lib/zod-resolver'
 import * as z from 'zod'
 import {
   Form,
