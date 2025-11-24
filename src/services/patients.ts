@@ -9,14 +9,14 @@ export const getPatients = async (): Promise<Patient[]> => {
 
   if (error) throw error
 
-  return data.map((p: any) => ({
+  return (data || []).map((p: any) => ({
     id: p.id,
-    name: p.nome_completo,
-    cpf: p.cpf,
+    name: p.nome_completo || '',
+    cpf: p.cpf || '',
     phone: p.telefone || '',
     email: p.email || '',
     address: p.endereco || '',
-    status: p.status as any,
+    status: p.status || 'Novo',
     notes: p.observacoes || '',
     createdAt: p.criado_em,
   }))
@@ -45,13 +45,13 @@ export const createPatient = async (
 
 export const updatePatient = async (id: string, patient: Partial<Patient>) => {
   const updates: any = {}
-  if (patient.name) updates.nome_completo = patient.name
-  if (patient.cpf) updates.cpf = patient.cpf
-  if (patient.phone) updates.telefone = patient.phone
-  if (patient.email) updates.email = patient.email
-  if (patient.address) updates.endereco = patient.address
-  if (patient.status) updates.status = patient.status
-  if (patient.notes) updates.observacoes = patient.notes
+  if (patient.name !== undefined) updates.nome_completo = patient.name
+  if (patient.cpf !== undefined) updates.cpf = patient.cpf
+  if (patient.phone !== undefined) updates.telefone = patient.phone
+  if (patient.email !== undefined) updates.email = patient.email
+  if (patient.address !== undefined) updates.endereco = patient.address
+  if (patient.status !== undefined) updates.status = patient.status
+  if (patient.notes !== undefined) updates.observacoes = patient.notes
 
   const { error } = await supabase
     .from('pacientes')

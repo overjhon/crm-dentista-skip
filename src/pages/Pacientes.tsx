@@ -36,34 +36,56 @@ export default function Pacientes() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null)
-  const [formData, setFormData] = useState<Partial<Patient>>({})
 
-  const filteredPatients = patients.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.cpf.includes(searchTerm),
-  )
+  // Initialize with default values to avoid uncontrolled inputs
+  const [formData, setFormData] = useState<Partial<Patient>>({
+    name: '',
+    cpf: '',
+    phone: '',
+    email: '',
+    address: '',
+    status: 'Novo',
+    notes: '',
+  })
+
+  const filteredPatients = patients.filter((p) => {
+    const search = searchTerm.toLowerCase()
+    const name = p.name?.toLowerCase() || ''
+    const cpf = p.cpf || ''
+    return name.includes(search) || cpf.includes(search)
+  })
 
   const handleOpenModal = (patient?: Patient) => {
     if (patient) {
       setEditingPatient(patient)
-      setFormData(patient)
+      setFormData({ ...patient })
     } else {
       setEditingPatient(null)
-      setFormData({ status: 'Novo' })
+      setFormData({
+        name: '',
+        cpf: '',
+        phone: '',
+        email: '',
+        address: '',
+        status: 'Novo',
+        notes: '',
+      })
     }
     setIsModalOpen(true)
   }
 
-  const cleanCPF = (value: string) => value.replace(/\D/g, '')
+  const cleanCPF = (value: string) => {
+    if (!value) return ''
+    return value.replace(/\D/g, '')
+  }
 
   const handleSave = async () => {
-    if (!formData.name) {
+    if (!formData.name?.trim()) {
       toast.error('Nome é obrigatório')
       return
     }
 
-    if (!formData.cpf) {
+    if (!formData.cpf?.trim()) {
       toast.error('CPF é obrigatório')
       return
     }
@@ -90,12 +112,26 @@ export default function Pacientes() {
         await updatePatient(editingPatient.id, formData)
         toast.success('Paciente atualizado com sucesso')
       } else {
-        await addPatient(formData as any)
+        // Ensure we pass a complete object for creation
+        const newPatient = {
+          name: formData.name,
+          cpf: formData.cpf,
+          phone: formData.phone || '',
+          email: formData.email || '',
+          address: formData.address || '',
+          status: formData.status || 'Novo',
+          notes: formData.notes || '',
+        } as Omit<Patient, 'id' | 'createdAt'>
+
+        await addPatient(newPatient)
         toast.success('Paciente cadastrado com sucesso')
       }
       setIsModalOpen(false)
-    } catch (error) {
-      toast.error('Erro ao salvar paciente')
+    } catch (error: any) {
+      console.error(error)
+      toast.error(
+        'Erro ao salvar paciente: ' + (error.message || 'Erro desconhecido'),
+      )
     }
   }
 
@@ -167,7 +203,9 @@ export default function Pacientes() {
                   colSpan={6}
                   className="text-center py-8 text-muted-foreground"
                 >
-                  Nenhum paciente encontrado.
+                  {searchTerm
+                    ? 'Nenhum paciente encontrado.'
+                    : 'Nenhum paciente cadastrado.'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -223,17 +261,18 @@ export default function Pacientes() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nome Completo</Label>
+                <Label htmlFor="name">Nome Completo *</Label>
                 <Input
                   id="name"
                   value={formData.name || ''}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
+                  placeholder="Ex: João Silva"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cpf">CPF (Apenas números)</Label>
+                <Label htmlFor="cpf">CPF (Apenas números) *</Label>
                 <Input
                   id="cpf"
                   value={formData.cpf || ''}
@@ -256,6 +295,7 @@ export default function Pacientes() {
                   onChange={(e) =>
                     setFormData({ ...formData, phone: e.target.value })
                   }
+                  placeholder="(00) 00000-0000"
                 />
               </div>
               <div className="space-y-2">
@@ -267,6 +307,7 @@ export default function Pacientes() {
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
+                  placeholder="exemplo@email.com"
                 />
               </div>
             </div>
@@ -278,6 +319,7 @@ export default function Pacientes() {
                 onChange={(e) =>
                   setFormData({ ...formData, address: e.target.value })
                 }
+                placeholder="Rua, Número, Bairro"
               />
             </div>
             <div className="space-y-2">
