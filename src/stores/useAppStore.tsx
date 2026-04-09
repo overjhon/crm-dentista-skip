@@ -88,6 +88,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [authUser])
 
+  // Refresh individual por recurso — evita re-buscar todas as tabelas em cada operação
+  const refreshPatients = async () => {
+    const p = await patientService.getPatients()
+    setPatients(p)
+  }
+
+  const refreshAppointments = async () => {
+    const a = await appointmentService.getAppointments()
+    setAppointments(a)
+  }
+
+  const refreshPayments = async () => {
+    const f = await financialService.getPayments()
+    setPayments(f)
+  }
+
+  const refreshExpenses = async () => {
+    const e = await expenseService.getExpenses()
+    setExpenses(e)
+  }
+
+  // Carregamento inicial — busca todos os recursos de uma vez
   const refreshData = async () => {
     setLoading(true)
     try {
@@ -104,7 +126,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       setExpenses(e)
       setProcedures(proc)
     } catch (error) {
-      console.error('Error fetching data:', error)
       toast.error('Erro ao carregar dados')
     } finally {
       setLoading(false)
@@ -112,127 +133,67 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   }
 
   const addPatient = async (data: Omit<Patient, 'id' | 'createdAt'>) => {
-    try {
-      await patientService.createPatient(data)
-      await refreshData()
-    } catch (error) {
-      console.error(error)
-      throw error
-    }
+    await patientService.createPatient(data)
+    await refreshPatients()
   }
 
   const updatePatient = async (id: string, data: Partial<Patient>) => {
-    try {
-      await patientService.updatePatient(id, data)
-      await refreshData()
-    } catch (error) {
-      console.error(error)
-      throw error
-    }
+    await patientService.updatePatient(id, data)
+    await refreshPatients()
   }
 
   const deletePatient = async (id: string) => {
-    try {
-      await patientService.deletePatient(id)
-      await refreshData()
-    } catch (error) {
-      console.error(error)
-      throw error
-    }
+    await patientService.deletePatient(id)
+    await refreshPatients()
   }
 
   const addAppointment = async (
     data: Omit<Appointment, 'id' | 'patientName' | 'procedure'>,
   ) => {
-    try {
-      await appointmentService.createAppointment(data)
-      await refreshData()
-    } catch (error) {
-      console.error(error)
-      throw error
-    }
+    await appointmentService.createAppointment(data)
+    await refreshAppointments()
   }
 
   const updateAppointment = async (id: string, data: Partial<Appointment>) => {
-    try {
-      await appointmentService.updateAppointment(id, data)
-      await refreshData()
-    } catch (error) {
-      console.error(error)
-      throw error
-    }
+    await appointmentService.updateAppointment(id, data)
+    await refreshAppointments()
   }
 
   const deleteAppointment = async (id: string) => {
-    try {
-      await appointmentService.deleteAppointment(id)
-      await refreshData()
-    } catch (error) {
-      console.error(error)
-      throw error
-    }
+    await appointmentService.deleteAppointment(id)
+    await refreshAppointments()
   }
 
   const addPayment = async (
     data: Omit<Payment, 'id' | 'patientName' | 'procedure'>,
   ) => {
-    try {
-      await financialService.createPayment(data)
-      await refreshData()
-    } catch (error) {
-      console.error(error)
-      throw error
-    }
+    await financialService.createPayment(data)
+    await refreshPayments()
   }
 
   const updatePayment = async (id: string, data: Partial<Payment>) => {
-    try {
-      await financialService.updatePayment(id, data)
-      await refreshData()
-    } catch (error) {
-      console.error(error)
-      throw error
-    }
+    await financialService.updatePayment(id, data)
+    await refreshPayments()
   }
 
   const deletePayment = async (id: string) => {
-    try {
-      await financialService.deletePayment(id)
-      await refreshData()
-    } catch (error) {
-      console.error(error)
-      throw error
-    }
+    await financialService.deletePayment(id)
+    await refreshPayments()
   }
 
   const addExpense = async (data: Omit<Expense, 'id'>) => {
-    try {
-      await expenseService.createExpense(data)
-      await refreshData()
-    } catch (error) {
-      console.error(error)
-      throw error
-    }
+    await expenseService.createExpense(data)
+    await refreshExpenses()
   }
 
   const updateExpense = async (id: string, data: Partial<Expense>) => {
-    try {
-      await expenseService.updateExpense(id, data)
-      await refreshData()
-    } catch (error) {
-      console.error(error)
-      throw error
-    }
+    await expenseService.updateExpense(id, data)
+    await refreshExpenses()
   }
 
   const deleteExpense = async (id: string) => {
-    try {
-      await expenseService.deleteExpense(id)
-      await refreshData()
-    } catch (error) {
-      console.error(error)
-      throw error
-    }
+    await expenseService.deleteExpense(id)
+    await refreshExpenses()
   }
 
   const updateSettings = (data: IntegrationSettings) => setSettings(data)
@@ -248,10 +209,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }
 
-  return React.createElement(
-    AppContext.Provider,
-    {
-      value: {
+  return (
+    <AppContext.Provider
+      value={{
         user,
         patients,
         appointments,
@@ -275,9 +235,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         deleteExpense,
         updateSettings,
         logout,
-      },
-    },
-    children,
+      }}
+    >
+      {children}
+    </AppContext.Provider>
   )
 }
 

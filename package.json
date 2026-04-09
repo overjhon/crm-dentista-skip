@@ -1,6 +1,6 @@
 {
-  "name": "skip-react-template",
-  "description": "A frontend React Vite TypeScript Shadcn UI template for Skip projects",
+  "name": "crm-dentista-everson",
+  "description": "CRM Dr. Everson Monteiro - Sistema de controle de agenda e financeiro",
   "private": true,
   "version": "0.0.35",
   "type": "module",
