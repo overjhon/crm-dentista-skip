@@ -211,7 +211,7 @@ export default function Agenda() {
             <div className="space-y-2">
               <Label htmlFor="patient">Paciente</Label>
               <Select
-                value={formData.patientId}
+                value={formData.patientId ?? ''}
                 onValueChange={(val) =>
                   setFormData({ ...formData, patientId: val })
                 }
@@ -255,7 +255,7 @@ export default function Agenda() {
             <div className="space-y-2">
               <Label htmlFor="procedure">Procedimento</Label>
               <Select
-                value={formData.procedureId}
+                value={formData.procedureId ?? ''}
                 onValueChange={(val) =>
                   setFormData({ ...formData, procedureId: val })
                 }
@@ -275,7 +275,7 @@ export default function Agenda() {
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
-                value={formData.status}
+                value={formData.status ?? ''}
                 onValueChange={(val: any) =>
                   setFormData({ ...formData, status: val })
                 }

@@ -33,8 +33,8 @@ export const getAppointments = async (): Promise<Appointment[]> => {
   const { data, error } = await supabase.from('agendamentos').select(
     `
       *,
-      pacientes (nome_completo),
-      procedimentos (nome_procedimento)
+      pacientes!agendamentos_paciente_id_fkey(nome_completo),
+      procedimentos!agendamentos_procedimento_id_fkey(nome_procedimento)
     `,
   )
 
